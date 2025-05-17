@@ -1,5 +1,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// Size the canvas based on the current window dimensions
+canvas.width = Math.floor(window.innerWidth * 0.95);
+canvas.height = Math.floor(window.innerHeight * 0.5);
 const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
 const houseCountEl = document.getElementById('houseCount');
@@ -278,7 +282,6 @@ function addVillager(x, y) {
         status: 'idle',
         health: 100,
         age: 0,
-        lifespan: 2000 + Math.floor(Math.random() * 1000),
         name: generateName(),
         emoji: VILLAGER_EMOJIS[Math.floor(Math.random() * VILLAGER_EMOJIS.length)]
     });
@@ -344,7 +347,8 @@ function draw() {
 
 function stepVillager(v, index) {
     v.age++;
-    if (v.age >= v.lifespan) {
+    const deathChance = Math.min(1, v.age / 1000);
+    if (Math.random() < deathChance) {
         log(`${v.name} passed away of old age`);
         tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
         villagers.splice(index, 1);
@@ -586,7 +590,7 @@ function updateTooltip() {
     const here = villagers.filter(v => v.x === hoverX && v.y === hoverY);
     for (const v of here) {
         lines.push(`<strong>${v.name}</strong> ${v.emoji}`,
-                   `Age: ${v.age}/${v.lifespan}`,
+                   `Age: ${v.age}`,
                    `Health: ${Math.floor(v.health)}`,
                    `Status: ${v.status}`);
     }
