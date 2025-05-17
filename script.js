@@ -7,7 +7,8 @@ const logEl = document.getElementById('log');
 
 function log(msg) {
     const div = document.createElement('div');
-    div.textContent = msg;
+    const time = new Date().toLocaleTimeString();
+    div.textContent = `[${time}] ${msg}`;
     logEl.prepend(div);
     logEl.scrollTop = 0;
 }
@@ -30,7 +31,8 @@ const COLORS = {
 };
 
 const EMOJIS = {
-    house: '\u{1F3E0}'
+    house: '\u{1F3E0}',
+    tree: '\u{1F333}'
 };
 
 const VILLAGER_EMOJIS = [
@@ -195,37 +197,39 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
     }
 }
 
-function placePatch(type, count, minRadius, maxRadius) {
-    for (let i = 0; i < count; i++) {
-        const cx = Math.floor(Math.random() * GRID_WIDTH);
-        const cy = Math.floor(Math.random() * GRID_HEIGHT);
-        const r = minRadius + Math.floor(Math.random() * (maxRadius - minRadius + 1));
-        for (let y = cy - r; y <= cy + r; y++) {
-            for (let x = cx - r; x <= cx + r; x++) {
-                if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) continue;
-                const dx = x - cx;
-                const dy = y - cy;
-                if (dx * dx + dy * dy <= r * r) {
-                    tiles[y][x].type = type;
-                }
+function randomWalkTerrain(type, walkers, steps) {
+    for (let i = 0; i < walkers; i++) {
+        let x = Math.floor(Math.random() * GRID_WIDTH);
+        let y = Math.floor(Math.random() * GRID_HEIGHT);
+        for (let j = 0; j < steps; j++) {
+            if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
+                tiles[y][x].type = type;
             }
+            const dir = Math.floor(Math.random() * 4);
+            if (dir === 0 && x > 0) x--;
+            else if (dir === 1 && x < GRID_WIDTH - 1) x++;
+            else if (dir === 2 && y > 0) y--;
+            else if (dir === 3 && y < GRID_HEIGHT - 1) y++;
         }
     }
 }
 
 function generateLandscape() {
-    placePatch('water', 8, 3, 7);
-    placePatch('forest', 12, 3, 6);
-    placePatch('mountain', 8, 4, 8);
-    placePatch('ore', 6, 2, 5);
-    placePatch('farmland', 4, 3, 5);
+    randomWalkTerrain('water', 5, 250);
+    randomWalkTerrain('forest', 8, 300);
+    randomWalkTerrain('mountain', 6, 180);
+    randomWalkTerrain('ore', 4, 120);
 }
 
 generateLandscape();
 
-// Start with a house in the center so villagers have somewhere to deposit food
-const startX = Math.floor(GRID_WIDTH / 2);
-const startY = Math.floor(GRID_HEIGHT / 2);
+// Place the starting house on a random grass tile
+let startX = Math.floor(Math.random() * GRID_WIDTH);
+let startY = Math.floor(Math.random() * GRID_HEIGHT);
+while (tiles[startY][startX].type !== 'grass') {
+    startX = Math.floor(Math.random() * GRID_WIDTH);
+    startY = Math.floor(Math.random() * GRID_HEIGHT);
+}
 tiles[startY][startX].type = 'house';
 tiles[startY][startX].hasCrop = false;
 tiles[startY][startX].stored = 0;
@@ -295,6 +299,7 @@ function draw() {
             } else if (tile.type === 'forest') {
                 ctx.fillStyle = COLORS.forest;
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                ctx.fillText(EMOJIS.tree, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
             } else if (tile.type === 'mountain') {
                 ctx.fillStyle = COLORS.mountain;
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -340,7 +345,6 @@ function stepVillager(v, index) {
     // Deposit carried food at a house
     if (v.carrying && tile.type === 'house') {
         tile.stored += v.carrying;
-        log(`${v.name} deposited food at ${tile.name}`);
         v.carrying = 0;
         v.task = null;
         v.target = null;
@@ -420,7 +424,6 @@ function stepVillager(v, index) {
                 targetTile.hasCrop = false;
                 targetTile.cropEmoji = null;
                 v.carrying = 1;
-                log(`${v.name} harvested food`);
             }
             v.task = null;
             v.target = null;
@@ -488,7 +491,7 @@ function gameTick() {
 function startGame() {
     countHouses();
     countFarmland();
-    addVillager();
+    addVillager(startX, startY);
     setInterval(gameTick, 100);
 }
 
