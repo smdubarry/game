@@ -121,7 +121,8 @@ function findNearestGrass(x, y) {
     let bestDist = Infinity;
     for (let yy = 0; yy < GRID_HEIGHT; yy++) {
         for (let xx = 0; xx < GRID_WIDTH; xx++) {
-            if (tiles[yy][xx].type === 'grass') {
+            const t = tiles[yy][xx];
+            if (t.type === 'grass' && !t.targeted) {
                 const d = Math.abs(x - xx) + Math.abs(y - yy);
                 if (d < bestDist) {
                     bestDist = d;
@@ -180,8 +181,8 @@ function moveTowards(v, target) {
     }
 }
 
-function releaseGatherTarget(v) {
-    if (v.task === 'gather' && v.target) {
+function releaseTarget(v) {
+    if (v.target) {
         const t = tiles[v.target.y]?.[v.target.x];
         if (t && t.targeted) t.targeted = false;
     }
@@ -253,7 +254,7 @@ export function stepVillager(v, index, ticks, log) {
     }
     if (v.health <= 0) {
         if (log) log(`${v.name} died`);
-        releaseGatherTarget(v);
+        releaseTarget(v);
         tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
         tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
@@ -266,7 +267,7 @@ export function stepVillager(v, index, ticks, log) {
     if (v.carrying && tile.type === 'house') {
         tile.stored += v.carrying;
         v.carrying = 0;
-        releaseGatherTarget(v);
+        releaseTarget(v);
         v.task = null;
         v.target = null;
         status = 'depositing';
@@ -280,7 +281,7 @@ export function stepVillager(v, index, ticks, log) {
             tile.name = generateHouseName();
             houseCount++;
             if (log) log(`${v.name} built ${tile.name}`);
-            releaseGatherTarget(v);
+            releaseTarget(v);
             v.task = null;
             v.target = null;
             status = 'building';
@@ -296,14 +297,15 @@ export function stepVillager(v, index, ticks, log) {
             tile.targeted = false;
             farmlandCount++;
             if (log) log(`${v.name} prepared farmland`);
-            releaseGatherTarget(v);
+            releaseTarget(v);
             v.task = null;
             v.target = null;
             status = 'working';
         } else {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
-                releaseGatherTarget(v);
+                releaseTarget(v);
                 v.target = findNearestGrass(v.x, v.y);
+                if (v.target) tiles[v.target.y][v.target.x].targeted = true;
             }
             if (v.target) {
                 moveTowards(v, v.target);
@@ -321,13 +323,13 @@ export function stepVillager(v, index, ticks, log) {
                 tile.stored--;
                 v.health = 100;
                 // if (log) log(`${v.name} ate at ${tile.name}`);
-                releaseGatherTarget(v);
+                releaseTarget(v);
                 v.task = null;
                 v.target = null;
                 status = 'eating';
             } else {
                 if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
-                    releaseGatherTarget(v);
+                    releaseTarget(v);
                     v.target = findNearestHouse(v.x, v.y, true);
                 }
                 moveTowards(v, v.target);
@@ -338,8 +340,9 @@ export function stepVillager(v, index, ticks, log) {
             return;
         } else if (farmlandCount < villagers.length * FARMLAND_PER_VILLAGER) {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
-                releaseGatherTarget(v);
+                releaseTarget(v);
                 v.target = findNearestGrass(v.x, v.y);
+                if (v.target) tiles[v.target.y][v.target.x].targeted = true;
             }
             if (v.target) {
                 moveTowards(v, v.target);
@@ -355,7 +358,7 @@ export function stepVillager(v, index, ticks, log) {
         if (!v.target || tiles[v.target.y][v.target.x].type !== 'house') {
             v.target = findNearestHouse(v.x, v.y);
         }
-        releaseGatherTarget(v);
+        releaseTarget(v);
         moveTowards(v, v.target);
         status = 'returning food';
         v.status = status;
@@ -363,7 +366,7 @@ export function stepVillager(v, index, ticks, log) {
     }
 
     if (!v.task || v.task === 'wait') {
-        releaseGatherTarget(v);
+        releaseTarget(v);
         v.target = findNearestCrop(v.x, v.y);
         if (v.target) tiles[v.target.y][v.target.x].targeted = true;
         v.task = v.target ? 'gather' : 'wait';
@@ -372,7 +375,7 @@ export function stepVillager(v, index, ticks, log) {
     if (v.task === 'gather') {
         status = 'gathering';
         if (!v.target) {
-            releaseGatherTarget(v);
+            releaseTarget(v);
             v.task = null;
         } else if (v.x === v.target.x && v.y === v.target.y) {
             const targetTile = tiles[v.y][v.x];
@@ -389,10 +392,10 @@ export function stepVillager(v, index, ticks, log) {
         }
     } else {
         if (v.task === 'wait') {
-            releaseGatherTarget(v);
+            releaseTarget(v);
             status = 'waiting';
         } else {
-            releaseGatherTarget(v);
+            releaseTarget(v);
             const dir = Math.floor(Math.random() * 4);
             if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y)) v.x--;
             if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y)) v.x++;
