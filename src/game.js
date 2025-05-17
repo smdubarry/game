@@ -1,5 +1,5 @@
 import { TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, COLORS, EMOJIS, FOOD_EMOJIS, tiles, generateLandscape } from './tiles.js';
-import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, generateHouseName, houseCount, getRandomHousePos } from './villager.js';
+import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, getTotalWood, generateHouseName, houseCount, farmlandCount, deathCount, getRandomHousePos } from './villager.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -9,8 +9,11 @@ canvas.height = GRID_HEIGHT * TILE_SIZE;
 ctx.imageSmoothingEnabled = false;
 
 const foodCountEl = document.getElementById('foodCount');
+const woodCountEl = document.getElementById('woodCount');
 const populationCountEl = document.getElementById('populationCount');
+const deathCountEl = document.getElementById('deathCount');
 const houseCountEl = document.getElementById('houseCount');
+const farmlandCountEl = document.getElementById('farmlandCount');
 const timeCountEl = document.getElementById('timeCount');
 const logEl = document.getElementById('log');
 
@@ -42,9 +45,13 @@ tiles[startY][startX].cropEmoji = null;
 
 function updateCounts() {
     const food = getTotalFood();
+    const wood = getTotalWood();
     populationCountEl.textContent = villagers.length;
     foodCountEl.textContent = food;
+    woodCountEl.textContent = wood;
+    deathCountEl.textContent = deathCount;
     houseCountEl.textContent = houseCount;
+    farmlandCountEl.textContent = farmlandCount;
     timeCountEl.textContent = ticks;
 }
 
