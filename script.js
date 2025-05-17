@@ -360,20 +360,12 @@ function draw() {
 
 function stepVillager(v, index) {
     v.age++;
-    const deathChance = Math.min(1, v.age / 1000);
-    if (Math.random() < deathChance) {
-        log(`${v.name} passed away of old age`);
-        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
-        tiles[v.y][v.x].corpseName = v.name;
-        villagers.splice(index, 1);
-        return;
-    }
     if (v.actionTimer > 0) {
         v.actionTimer--;
         return;
     }
 
-    v.health -= 0.1;
+    v.health -= 1;
     if (v.health <= 0) {
         log(`${v.name} died`);
         tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
@@ -413,7 +405,7 @@ function stepVillager(v, index) {
     // Seek out and convert grass to farmland when needed
     if (!v.carrying && farmlandNeeded) {
         if (tile.type === 'grass') {
-            if (spendFood(5)) {
+            if (food === 0 || spendFood(5)) {
                 tile.type = 'farmland';
                 tile.hasCrop = false;
                 tile.cropEmoji = null;
@@ -437,21 +429,32 @@ function stepVillager(v, index) {
     }
 
     // Eat if hungry
-    if (v.health < 50 || v.task === 'eat') {
-        if (tile.type === 'house' && tile.stored > 0) {
-            tile.stored--;
-            v.health = 100;
-            log(`${v.name} ate at ${tile.name}`);
-            v.task = null;
-            v.target = null;
-            status = 'eating';
-        } else {
-            if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
-                v.target = findNearestHouse(v.x, v.y, true);
+    if (v.health < 90 || v.task === 'eat') {
+        if (food > 0) {
+            if (tile.type === 'house' && tile.stored > 0) {
+                tile.stored--;
+                v.health = 100;
+                log(`${v.name} ate at ${tile.name}`);
+                v.task = null;
+                v.target = null;
+                status = 'eating';
+            } else {
+                if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
+                    v.target = findNearestHouse(v.x, v.y, true);
+                }
+                moveTowards(v, v.target);
+                v.task = 'eat';
+                status = 'seeking food';
             }
-            moveTowards(v, v.target);
-            v.task = 'eat';
-            status = 'seeking food';
+        } else {
+            if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
+                v.target = findNearestGrass(v.x, v.y);
+            }
+            if (v.target) {
+                moveTowards(v, v.target);
+                v.task = 'make_farmland';
+                status = 'seeking farmland site';
+            }
         }
         return;
     }
