@@ -3,19 +3,29 @@ const ctx = canvas.getContext('2d');
 const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
 const houseCountEl = document.getElementById('houseCount');
+const logEl = document.getElementById('log');
+
+function log(msg) {
+    const div = document.createElement('div');
+    div.textContent = msg;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+}
 
 const TILE_SIZE = 16;
 const GRID_WIDTH = Math.floor(canvas.width / TILE_SIZE);
 const GRID_HEIGHT = Math.floor(canvas.height / TILE_SIZE);
-const TILE_MARGIN = 1;
 
 // Image containing all sprites from the Kenney roguelike/RPG pack
 ctx.imageSmoothingEnabled = false;
 
 // Emoji characters used for rendering game entities
+const COLORS = {
+    grass: '#b6f3b6', // light green
+    farmland: '#deb887' // brown
+};
+
 const EMOJIS = {
-    grass: '\u{1F7E9}',
-    farmland: '\u{1F7EB}',
     house: '\u{1F3E0}'
 };
 
@@ -217,12 +227,14 @@ function addVillager(x, y) {
         carrying: 0,
         task: null,
         target: null,
+        status: 'idle',
         hunger: 100,
         age: 0,
         lifespan: 2000 + Math.floor(Math.random() * 1000),
         name: generateName(),
         emoji: VILLAGER_EMOJIS[Math.floor(Math.random() * VILLAGER_EMOJIS.length)]
     });
+    log(`${villagers[villagers.length-1].name} has joined the colony`);
     updateCounts();
 }
 
@@ -239,15 +251,24 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Draw tiles
+    // Draw tiles using colors instead of square emojis
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
             const tile = tiles[y][x];
-            let emoji = EMOJIS[tile.type];
-            if (tile.type === 'farmland' && tile.hasCrop) {
-                emoji = tile.cropEmoji;
+            if (tile.type === 'grass') {
+                ctx.fillStyle = COLORS.grass;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (tile.type === 'farmland') {
+                ctx.fillStyle = COLORS.farmland;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                if (tile.hasCrop) {
+                    ctx.fillText(tile.cropEmoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+                }
+            } else if (tile.type === 'house') {
+                ctx.fillStyle = COLORS.grass;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                ctx.fillText(EMOJIS.house, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
             }
-            ctx.fillText(emoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
         }
     }
 
@@ -260,6 +281,7 @@ function draw() {
 function stepVillager(v, index) {
     v.age++;
     if (v.age >= v.lifespan) {
+        log(`${v.name} passed away of old age`);
         villagers.splice(index, 1);
         return;
     }
@@ -270,18 +292,22 @@ function stepVillager(v, index) {
 
     v.hunger -= 0.05;
     if (v.hunger <= 0) {
+        log(`${v.name} has starved`);
         villagers.splice(index, 1);
         return;
     }
 
     const tile = tiles[v.y][v.x];
+    let status = 'idle';
 
     // Deposit carried food at a house
     if (v.carrying && tile.type === 'house') {
         tile.stored += v.carrying;
+        log(`${v.name} deposited food at ${tile.name}`);
         v.carrying = 0;
         v.task = null;
         v.target = null;
+        status = 'depositing';
     }
 
     // Build a house on grass if enough food and population is maxed
@@ -292,8 +318,10 @@ function stepVillager(v, index) {
             tile.stored = 0;
             tile.name = generateHouseName();
             houseCount++;
+            log(`${v.name} built ${tile.name}`);
             v.task = null;
             v.target = null;
+            status = 'building';
         }
     }
 
@@ -304,6 +332,8 @@ function stepVillager(v, index) {
             tile.hasCrop = false;
             tile.cropEmoji = null;
             farmlandCount++;
+            log(`${v.name} prepared farmland`);
+            status = 'working';
         }
     }
 
@@ -312,14 +342,17 @@ function stepVillager(v, index) {
         if (tile.type === 'house' && tile.stored > 0) {
             tile.stored--;
             v.hunger = 100;
+            log(`${v.name} ate at ${tile.name}`);
             v.task = null;
             v.target = null;
+            status = 'eating';
         } else {
             if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
                 v.target = findNearestHouse(v.x, v.y, true);
             }
             moveTowards(v, v.target);
             v.task = 'eat';
+            status = 'seeking food';
         }
         return;
     }
@@ -330,6 +363,7 @@ function stepVillager(v, index) {
             v.target = findNearestHouse(v.x, v.y);
         }
         moveTowards(v, v.target);
+        status = 'returning food';
         return;
     }
 
@@ -340,6 +374,7 @@ function stepVillager(v, index) {
     }
 
     if (v.task === 'gather') {
+        status = 'gathering';
         if (!v.target) {
             v.task = null;
         } else if (v.x === v.target.x && v.y === v.target.y) {
@@ -348,6 +383,7 @@ function stepVillager(v, index) {
                 targetTile.hasCrop = false;
                 targetTile.cropEmoji = null;
                 v.carrying = 1;
+                log(`${v.name} harvested food`);
             }
             v.task = null;
             v.target = null;
@@ -362,7 +398,9 @@ function stepVillager(v, index) {
         if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1, v)) v.y--;
         if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1, v)) v.y++;
         v.task = null;
+        status = 'wandering';
     }
+    v.status = status;
 }
 
 let spawnTimer = 200;
@@ -440,7 +478,8 @@ canvas.addEventListener('mousemove', (e) => {
     if (villager) {
         content = `<strong>${villager.name}</strong><br>` +
                   `Age: ${villager.age}/${villager.lifespan}<br>` +
-                  `Hunger: ${Math.floor(villager.hunger)}`;
+                  `Hunger: ${Math.floor(villager.hunger)}<br>` +
+                  `Status: ${villager.status}`;
     } else if (tiles[y] && tiles[y][x] && tiles[y][x].type === 'house') {
         const house = tiles[y][x];
         content = `<strong>${house.name}</strong><br>` +
