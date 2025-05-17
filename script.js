@@ -75,7 +75,7 @@ function getHousingCapacity() {
 }
 
 function isTileOccupied(x, y, ignore) {
-    return villagers.some(v => v !== ignore && v.x === x && v.y === y);
+    return false;
 }
 
 function findNearestHouse(x, y, requireFood = false) {
@@ -159,11 +159,10 @@ const tiles = [];
 for (let y = 0; y < GRID_HEIGHT; y++) {
     tiles[y] = [];
     for (let x = 0; x < GRID_WIDTH; x++) {
-        const type = Math.random() < 0.1 ? 'farmland' : 'grass';
         tiles[y][x] = {
-            type,
-            hasCrop: type === 'farmland',
-            cropEmoji: type === 'farmland' ? FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)] : null,
+            type: 'grass',
+            hasCrop: false,
+            cropEmoji: null,
             stored: 0,
             name: null
         };
@@ -277,6 +276,13 @@ function stepVillager(v, index) {
         }
     }
 
+    // Convert grass to farmland when not carrying anything
+    if (!v.carrying && tile.type === 'grass') {
+        tile.type = 'farmland';
+        tile.hasCrop = false;
+        tile.cropEmoji = null;
+    }
+
     // Eat if hungry
     if (v.hunger < 50 || v.task === 'eat') {
         if (tile.type === 'house' && tile.stored > 0) {
@@ -317,7 +323,6 @@ function stepVillager(v, index) {
             if (targetTile.type === 'farmland' && targetTile.hasCrop) {
                 targetTile.hasCrop = false;
                 targetTile.cropEmoji = null;
-                targetTile.type = 'grass';
                 v.carrying = 1;
             }
             v.task = null;
@@ -340,18 +345,12 @@ let spawnTimer = 200;
 function gameTick() {
     if (!running) return;
 
-    // Grow food on farmland and occasionally convert grass to new farmland
+    // Grow food on farmland tiles
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
             const t = tiles[y][x];
             if (t.type === 'farmland') {
-                if (!t.hasCrop && Math.random() < 0.05) {
-                    t.hasCrop = true;
-                    t.cropEmoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
-                }
-            } else if (t.type === 'grass') {
-                if (Math.random() < 0.001) {
-                    t.type = 'farmland';
+                if (!t.hasCrop && Math.random() < 0.02) {
                     t.hasCrop = true;
                     t.cropEmoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
                 }
