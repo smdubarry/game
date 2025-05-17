@@ -12,10 +12,11 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - When the population has reached the current housing capacity and at least 20 food is available, a villager on a grass tile will build a new house.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
 - Villagers slowly lose health and age over time. They eat stored food when low on health and die if it reaches zero or they surpass their lifespan. Dead villagers leave behind a skull or skeleton.
-- Hovering over any tile shows a tooltip listing everything on that space. The
-  tooltip updates continuously even when the mouse stays still.
-- Food, population and house counts are shown beneath the canvas and update continuously.
-- A scrolling log beneath the counts records notable events with the most recent entry at the top. Log entries include timestamps and omit food harvest and deposit messages.
+- Villager statuses shown in the tooltip are limited to **wandering**, **gathering food** or **preparing farmland**.
+ - Hovering over any tile shows a tooltip listing everything on that space. The
+    tooltip updates continuously even when the mouse stays still.
+ - Food, population, house counts and the current simulation time are shown beneath the canvas and update continuously.
+ - A scrolling log beneath the counts records notable events with the most recent entry at the top. Log entries are timestamped with the tick count and omit food harvest and deposit messages.
 
 ## How to Play
 
@@ -23,5 +24,6 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 2. Watch as the villagers move around and expand their colony.
 3. Use the **Pause** button to pause or resume the simulation.
 4. Use **Add Villager** to introduce a new villager manually.
+5. Adjust the **Speed** slider to run the simulation faster or slower.
 
 Keep this README up to date with any future changes to game behavior.

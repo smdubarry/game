@@ -13,10 +13,14 @@
     <div id="controls">
         <button id="toggleSim">Pause</button>
         <button id="addVillager">Add Villager</button>
+        <label>Speed: <span id="speedLabel">1x</span>
+            <input type="range" id="speedControl" min="0.5" max="3" step="0.25" value="1">
+        </label>
     </div>
     <p>Food: <span id="foodCount">0</span> |
        Population: <span id="populationCount">0</span> |
-       Houses: <span id="houseCount">0</span></p>
+       Houses: <span id="houseCount">0</span> |
+       Time: <span id="timeCount">0</span></p>
     <div id="log" class="log"></div>
     <script src="script.js"></script>
 </body>
