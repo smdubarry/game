@@ -2,12 +2,15 @@ body {
     font-family: Arial, sans-serif;
     text-align: center;
     background: #eef;
+    margin: 0;
 }
 
 #gameCanvas {
     border: 1px solid #333;
     background: #fff;
     image-rendering: pixelated;
+    display: block;
+    margin: 0 auto;
 }
 
 #controls {

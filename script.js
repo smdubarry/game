@@ -47,6 +47,10 @@ function countHouses() {
     houseCount = count;
 }
 
+function getHousingCapacity() {
+    return houseCount * 5;
+}
+
 function findNearestHouse(x, y, requireFood = false) {
     let best = null;
     let bestDist = Infinity;
@@ -140,6 +144,7 @@ tiles[startY][startX].stored = 0;
 
 const villagers = [];
 function addVillager(x, y) {
+    if (villagers.length >= getHousingCapacity()) return;
     villagers.push({
         x: x || Math.floor(Math.random() * GRID_WIDTH),
         y: y || Math.floor(Math.random() * GRID_HEIGHT),
@@ -201,12 +206,13 @@ function stepVillager(v, index) {
         v.target = null;
     }
 
-    // Build a house on grass if enough food
-    if (!v.carrying && tile.type === 'grass' && food >= 20) {
+    // Build a house on grass if enough food and population is maxed
+    if (!v.carrying && tile.type === 'grass' && food >= 20 && villagers.length >= getHousingCapacity()) {
         if (spendFood(20)) {
             tile.type = 'house';
             tile.hasCrop = false;
             tile.stored = 0;
+            houseCount++;
             v.task = null;
             v.target = null;
         }
@@ -304,7 +310,7 @@ function gameTick() {
                 if (t.type === 'house' && t.stored > 0) choices.push({ x, y, t });
             }
         }
-        if (choices.length > 0) {
+        if (choices.length > 0 && villagers.length < getHousingCapacity()) {
             const h = choices[Math.floor(Math.random() * choices.length)];
             h.t.stored--;
             addVillager(h.x, h.y);
