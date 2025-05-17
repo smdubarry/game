@@ -300,7 +300,7 @@ export function stepVillager(v, index, ticks, log) {
         return;
     }
 
-    if (!v.task) {
+    if (!v.task || v.task === 'wait') {
         v.target = findNearestCrop(v.x, v.y);
         v.task = v.target ? 'gather' : 'wait';
     }
