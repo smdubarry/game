@@ -1,0 +1,14 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #eef;
+}
+
+#gameCanvas {
+    border: 1px solid #333;
+    background: #fff;
+}
+
+#controls {
+    margin: 10px;
+}
