@@ -27,3 +27,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 5. Adjust the **Speed** slider to run the simulation faster or slower.
 
 Keep this README up to date with any future changes to game behavior.
+
+## License
+
+This project is dedicated to the public domain under the terms of [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).

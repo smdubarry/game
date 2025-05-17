@@ -1,4 +1,5 @@
 const canvas = document.getElementById('gameCanvas');
+canvas.width = window.innerWidth;
 const ctx = canvas.getContext('2d');
 const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
@@ -56,7 +57,7 @@ const FOOD_EMOJIS = [
     '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}'
 ];
 
-const CORPSE_EMOJIS = ["\u{1F480}", "\u{2620}\u{FE0F}"];
+const CORPSE_EMOJI = "\u{2620}\u{FE0F}";
 const NAME_SYLLABLES = [
     'an','bel','cor','dan','el','fin','gar','hal','ith','jor','kel','lim',
     'mor','nal','or','pal','quil','rin','sor','tur','um','vor','wil','xan',
@@ -221,7 +222,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             cropEmoji: null,
             stored: 0,
             name: null,
-            corpseEmoji: null
+            corpseEmoji: null,
+            corpseName: null
         };
     }
 }
@@ -357,7 +359,8 @@ function stepVillager(v, index) {
     v.age++;
     if (v.age >= v.lifespan) {
         log(`${v.name} passed away of old age`);
-        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
+        tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
         return;
     }
@@ -369,7 +372,8 @@ function stepVillager(v, index) {
     v.health -= 0.1;
     if (v.health <= 0) {
         log(`${v.name} died`);
-        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
+        tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
         return;
     }
@@ -612,7 +616,9 @@ function updateTooltip() {
     } else {
         lines.push('Grass');
     }
-    if (tile.corpseEmoji) lines.push(`Corpse: ${tile.corpseEmoji}`);
+    if (tile.corpseEmoji) {
+        lines.push(`Corpse of ${tile.corpseName} ${tile.corpseEmoji}`);
+    }
 
     const here = villagers.filter(v => v.x === hoverX && v.y === hoverY);
     for (const v of here) {
