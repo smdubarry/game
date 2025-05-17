@@ -36,6 +36,7 @@ while (tiles[startY][startX].type !== 'grass') {
 tiles[startY][startX].type = 'house';
 tiles[startY][startX].hasCrop = false;
 tiles[startY][startX].stored = 0;
+tiles[startY][startX].wood = 0;
 tiles[startY][startX].name = generateHouseName();
 tiles[startY][startX].cropEmoji = null;
 
@@ -71,7 +72,9 @@ function draw() {
             } else if (tile.type === 'forest') {
                 ctx.fillStyle = COLORS.forest;
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                ctx.fillText(EMOJIS.tree, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+                if (tile.hasTree) {
+                    ctx.fillText(EMOJIS.tree, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+                }
             } else if (tile.type === 'mountain') {
                 ctx.fillStyle = COLORS.mountain;
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -108,11 +111,28 @@ function growCrops() {
     }
 }
 
+function regrowTrees() {
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'forest' && !t.hasTree) {
+                if (t.treeTimer > 0) {
+                    t.treeTimer--;
+                }
+                if (t.treeTimer <= 0) {
+                    t.hasTree = true;
+                }
+            }
+        }
+    }
+}
+
 function gameTick() {
     if (!running) return;
 
     ticks++;
     growCrops();
+    regrowTrees();
 
     for (let i = villagers.length - 1; i >= 0; i--) {
         stepVillager(villagers[i], i, ticks, log);
@@ -165,7 +185,7 @@ function updateTooltip() {
     const tile = tiles[hoverY][hoverX];
     const lines = [];
     if (tile.type === 'house') {
-        lines.push(`<strong>${tile.name}</strong>`, `Stored Food: ${tile.stored}`);
+        lines.push(`<strong>${tile.name}</strong>`, `Stored Food: ${tile.stored}`, `Stored Wood: ${tile.wood}`);
     } else if (tile.type === 'farmland') {
         let info = 'Farmland';
         if (tile.hasCrop) info += ` - Crop: ${tile.cropEmoji}`;
@@ -173,7 +193,7 @@ function updateTooltip() {
     } else if (tile.type === 'water') {
         lines.push('Water');
     } else if (tile.type === 'forest') {
-        lines.push('Forest');
+        lines.push(tile.hasTree ? 'Forest' : 'Forest (empty)');
     } else if (tile.type === 'mountain') {
         lines.push('Mountain');
     } else if (tile.type === 'ore') {

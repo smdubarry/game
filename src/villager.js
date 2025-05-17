@@ -135,6 +135,24 @@ function findNearestGrass(x, y) {
     return best;
 }
 
+function findNearestForest(x, y) {
+    let best = null;
+    let bestDist = Infinity;
+    for (let yy = 0; yy < GRID_HEIGHT; yy++) {
+        for (let xx = 0; xx < GRID_WIDTH; xx++) {
+            const t = tiles[yy][xx];
+            if (t.type === 'forest' && t.hasTree && !t.targeted) {
+                const d = Math.abs(x - xx) + Math.abs(y - yy);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = { x: xx, y: yy };
+                }
+            }
+        }
+    }
+    return best;
+}
+
 function findPathStep(sx, sy, tx, ty) {
     if (sx === tx && sy === ty) return null;
     const visited = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
@@ -203,6 +221,17 @@ export function getTotalFood() {
     return total;
 }
 
+export function getTotalWood() {
+    let total = 0;
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'house') total += t.wood;
+        }
+    }
+    return total;
+}
+
 export function spendFood(amount) {
     if (getTotalFood() < amount) return false;
     let remaining = amount;
@@ -212,6 +241,23 @@ export function spendFood(amount) {
             if (t.type === 'house' && t.stored > 0) {
                 const use = Math.min(t.stored, remaining);
                 t.stored -= use;
+                remaining -= use;
+                if (remaining <= 0) return true;
+            }
+        }
+    }
+    return false;
+}
+
+export function spendWood(amount) {
+    if (getTotalWood() < amount) return false;
+    let remaining = amount;
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'house' && t.wood > 0) {
+                const use = Math.min(t.wood, remaining);
+                t.wood -= use;
                 remaining -= use;
                 if (remaining <= 0) return true;
             }
@@ -234,7 +280,8 @@ export function addVillager(x, y, log) {
         x: vx,
         y: vy,
         actionTimer: 0,
-        carrying: 0,
+        carryingFood: 0,
+        carryingWood: 0,
         task: null,
         target: null,
         status: 'idle',
@@ -268,20 +315,27 @@ export function stepVillager(v, index, ticks, log) {
     const tile = tiles[v.y][v.x];
     let status = 'idle';
 
-    if (v.carrying && tile.type === 'house') {
-        tile.stored += v.carrying;
-        v.carrying = 0;
+    if ((v.carryingFood || v.carryingWood) && tile.type === 'house') {
+        if (v.carryingFood) {
+            tile.stored += v.carryingFood;
+            v.carryingFood = 0;
+        }
+        if (v.carryingWood) {
+            tile.wood += v.carryingWood;
+            v.carryingWood = 0;
+        }
         releaseTarget(v);
         v.task = null;
         v.target = null;
         status = 'depositing';
     }
 
-    if (!v.carrying && tile.type === 'grass' && getTotalFood() >= 20 && villagers.length >= getHousingCapacity()) {
-        if (spendFood(20)) {
+    if (!v.carryingFood && !v.carryingWood && tile.type === 'grass' && villagers.length >= getHousingCapacity() && getTotalWood() >= 10) {
+        if (spendWood(10)) {
             tile.type = 'house';
             tile.hasCrop = false;
             tile.stored = 0;
+            tile.wood = 0;
             tile.name = generateHouseName();
             houseCount++;
             if (log) log(`${v.name} built ${tile.name}`);
@@ -293,7 +347,7 @@ export function stepVillager(v, index, ticks, log) {
     }
 
     const needed = farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER;
-    if (!v.carrying && needed) {
+    if (!v.carryingFood && !v.carryingWood && needed) {
         if (tile.type === 'grass') {
             tile.type = 'farmland';
             tile.hasCrop = false;
@@ -364,22 +418,28 @@ export function stepVillager(v, index, ticks, log) {
         }
     }
 
-    if (v.carrying) {
+    if (v.carryingFood || v.carryingWood) {
         if (!v.target || tiles[v.target.y][v.target.x].type !== 'house') {
             v.target = findNearestHouse(v.x, v.y);
         }
         releaseTarget(v);
         moveTowards(v, v.target);
-        status = 'returning food';
+        status = v.carryingWood ? 'returning wood' : 'returning food';
         v.status = status;
         return;
     }
 
     if (!v.task || v.task === 'wait') {
         releaseTarget(v);
-        v.target = findNearestCrop(v.x, v.y);
-        if (v.target) tiles[v.target.y][v.target.x].targeted = true;
-        v.task = v.target ? 'gather' : 'wait';
+        if (villagers.length >= getHousingCapacity() && getTotalWood() < 10) {
+            v.target = findNearestForest(v.x, v.y);
+            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+            v.task = v.target ? 'gather_wood' : 'wait';
+        } else {
+            v.target = findNearestCrop(v.x, v.y);
+            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+            v.task = v.target ? 'gather' : 'wait';
+        }
     }
 
     if (v.task === 'gather') {
@@ -392,7 +452,25 @@ export function stepVillager(v, index, ticks, log) {
             if (targetTile.type === 'farmland' && targetTile.hasCrop) {
                 targetTile.hasCrop = false;
                 targetTile.cropEmoji = null;
-                v.carrying = 1;
+                v.carryingFood = 1;
+            }
+            targetTile.targeted = false;
+            v.task = null;
+            v.target = null;
+        } else {
+            moveTowards(v, v.target);
+        }
+    } else if (v.task === 'gather_wood') {
+        status = 'gathering wood';
+        if (!v.target) {
+            releaseTarget(v);
+            v.task = null;
+        } else if (v.x === v.target.x && v.y === v.target.y) {
+            const targetTile = tiles[v.y][v.x];
+            if (targetTile.type === 'forest' && targetTile.hasTree) {
+                targetTile.hasTree = false;
+                targetTile.treeTimer = 100;
+                v.carryingWood = 1;
             }
             targetTile.targeted = false;
             v.task = null;
