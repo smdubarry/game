@@ -1,6 +1,6 @@
 # Mini Colony Simulator
 
-This is a simple browser-based game that simulates a growing community. Villagers wander around, gather food from farmland, and build houses when enough resources are collected. Houses automatically produce more villagers over time.
+This is a simple browser-based game that simulates a growing community. Villagers wander around, gather food from farmland, and build houses when enough resources are collected. Houses automatically produce more villagers over time. The game now features simple 16x16 pixel art graphics for tiles and villagers.
 
 ## How to Play
 
