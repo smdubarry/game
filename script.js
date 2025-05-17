@@ -365,7 +365,9 @@ function stepVillager(v, index) {
         return;
     }
 
-    v.health -= 1;
+    if (ticks % 5 === 0) {
+        v.health -= 1;
+    }
     if (v.health <= 0) {
         log(`${v.name} died`);
         tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
@@ -401,11 +403,11 @@ function stepVillager(v, index) {
         }
     }
 
-    const farmlandNeeded = (farmlandCount < villagers.length) || (food < villagers.length * 2);
+    const farmlandNeeded = farmlandCount < villagers.length;
     // Seek out and convert grass to farmland when needed
     if (!v.carrying && farmlandNeeded) {
         if (tile.type === 'grass') {
-            if (food === 0 || spendFood(5)) {
+            if (spendFood(5)) {
                 tile.type = 'farmland';
                 tile.hasCrop = false;
                 tile.cropEmoji = null;
