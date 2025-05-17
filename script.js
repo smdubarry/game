@@ -54,6 +54,7 @@ const FOOD_EMOJIS = [
     '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}'
 ];
 
+const CORPSE_EMOJIS = ["\u{1F480}", "\u{2620}\u{FE0F}"];
 const NAME_SYLLABLES = [
     'an','bel','cor','dan','el','fin','gar','hal','ith','jor','kel','lim',
     'mor','nal','or','pal','quil','rin','sor','tur','um','vor','wil','xan',
@@ -192,7 +193,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             hasCrop: false,
             cropEmoji: null,
             stored: 0,
-            name: null
+            name: null,
+            corpseEmoji: null
         };
     }
 }
@@ -257,7 +259,7 @@ function addVillager(x, y) {
         task: null,
         target: null,
         status: 'idle',
-        hunger: 100,
+        health: 100,
         age: 0,
         lifespan: 2000 + Math.floor(Math.random() * 1000),
         name: generateName(),
@@ -311,6 +313,9 @@ function draw() {
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 ctx.fillText(EMOJIS.house, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
             }
+            if (tile.corpseEmoji) {
+                ctx.fillText(tile.corpseEmoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+            }
         }
     }
 
@@ -324,6 +329,7 @@ function stepVillager(v, index) {
     v.age++;
     if (v.age >= v.lifespan) {
         log(`${v.name} passed away of old age`);
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
         villagers.splice(index, 1);
         return;
     }
@@ -332,9 +338,10 @@ function stepVillager(v, index) {
         return;
     }
 
-    v.hunger -= 0.05;
-    if (v.hunger <= 0) {
-        log(`${v.name} has starved`);
+    v.health -= 0.1;
+    if (v.health <= 0) {
+        log(`${v.name} died`);
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
         villagers.splice(index, 1);
         return;
     }
@@ -368,7 +375,7 @@ function stepVillager(v, index) {
 
     // Convert grass to farmland when needed and food is available
     if (!v.carrying && tile.type === 'grass') {
-        if (farmlandCount < villagers.length * 2 && spendFood(5)) {
+        if (((farmlandCount < villagers.length) || (food < villagers.length * 2)) && spendFood(5)) {
             tile.type = 'farmland';
             tile.hasCrop = false;
             tile.cropEmoji = null;
@@ -379,10 +386,10 @@ function stepVillager(v, index) {
     }
 
     // Eat if hungry
-    if (v.hunger < 50 || v.task === 'eat') {
+    if (v.health < 50 || v.task === 'eat') {
         if (tile.type === 'house' && tile.stored > 0) {
             tile.stored--;
-            v.hunger = 100;
+            v.health = 100;
             log(`${v.name} ate at ${tile.name}`);
             v.task = null;
             v.target = null;
@@ -542,12 +549,13 @@ function updateTooltip() {
     } else {
         lines.push('Grass');
     }
+    if (tile.corpseEmoji) lines.push(`Corpse: ${tile.corpseEmoji}`);
 
     const here = villagers.filter(v => v.x === hoverX && v.y === hoverY);
     for (const v of here) {
         lines.push(`<strong>${v.name}</strong> ${v.emoji}`,
                    `Age: ${v.age}/${v.lifespan}`,
-                   `Hunger: ${Math.floor(v.hunger)}`,
+                   `Health: ${Math.floor(v.health)}`,
                    `Status: ${v.status}`);
     }
 
