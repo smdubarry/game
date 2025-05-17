@@ -279,7 +279,9 @@ export function stepVillager(v, index, ticks, log) {
                 v.task = 'eat';
                 status = 'seeking food';
             }
-        } else {
+            v.status = status;
+            return;
+        } else if (farmlandCount < villagers.length) {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 v.target = findNearestGrass(v.x, v.y);
             }
@@ -288,9 +290,9 @@ export function stepVillager(v, index, ticks, log) {
                 v.task = 'make_farmland';
                 status = 'seeking farmland site';
             }
+            v.status = status;
+            return;
         }
-        v.status = status;
-        return;
     }
 
     if (v.carrying) {
