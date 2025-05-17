@@ -409,16 +409,14 @@ function stepVillager(v, index) {
     // Seek out and convert grass to farmland when needed
     if (!v.carrying && farmlandNeeded) {
         if (tile.type === 'grass') {
-            if (spendFood(5)) {
-                tile.type = 'farmland';
-                tile.hasCrop = false;
-                tile.cropEmoji = null;
-                farmlandCount++;
-                log(`${v.name} prepared farmland`);
-                v.task = null;
-                v.target = null;
-                status = 'working';
-            }
+            tile.type = 'farmland';
+            tile.hasCrop = false;
+            tile.cropEmoji = null;
+            farmlandCount++;
+            log(`${v.name} prepared farmland`);
+            v.task = null;
+            v.target = null;
+            status = 'working';
         } else {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 v.target = findNearestGrass(v.x, v.y);
@@ -568,17 +566,26 @@ document.getElementById('addVillager').addEventListener('click', () => {
     addVillager();
 });
 
-const speedControl = document.getElementById('speedControl');
 const speedLabel = document.getElementById('speedLabel');
+const slowDownBtn = document.getElementById('slowDown');
+const speedUpBtn = document.getElementById('speedUp');
+let speedMultiplier = 1;
 
 function updateSpeed() {
-    const mult = parseFloat(speedControl.value);
-    speedLabel.textContent = mult.toFixed(2) + 'x';
+    speedLabel.textContent = speedMultiplier.toFixed(2) + 'x';
     clearInterval(gameInterval);
-    gameInterval = setInterval(gameTick, baseInterval / mult);
+    gameInterval = setInterval(gameTick, baseInterval / speedMultiplier);
 }
 
-speedControl.addEventListener('input', updateSpeed);
+slowDownBtn.addEventListener('click', () => {
+    speedMultiplier = Math.max(0.25, speedMultiplier / 2);
+    updateSpeed();
+});
+
+speedUpBtn.addEventListener('click', () => {
+    speedMultiplier = Math.min(8, speedMultiplier * 2);
+    updateSpeed();
+});
 
 const tooltip = document.getElementById('tooltip');
 let hoverX = null;
