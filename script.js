@@ -6,57 +6,32 @@ const populationCountEl = document.getElementById('populationCount');
 const TILE_SIZE = 16;
 const GRID_WIDTH = Math.floor(canvas.width / TILE_SIZE);
 const GRID_HEIGHT = Math.floor(canvas.height / TILE_SIZE);
+const TILE_MARGIN = 1;
+
+// Image containing all sprites from the Kenney roguelike/RPG pack
+const tileset = new Image();
+tileset.src = 'kenney_roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png';
+let SHEET_COLS = 57; // default, will be recalculated on load
 
 ctx.imageSmoothingEnabled = false;
 
-function createCheckerboard(c1, c2) {
-    const c = document.createElement('canvas');
-    c.width = c.height = 16;
-    const g = c.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    for (let y = 0; y < 16; y++) {
-        for (let x = 0; x < 16; x++) {
-            g.fillStyle = (x + y) % 2 ? c1 : c2;
-            g.fillRect(x, y, 1, 1);
-        }
-    }
-    return c;
+// Helper to compute the source position of a tile ID in the spritesheet
+function getTilePos(id) {
+    const index = id - 1;
+    const col = index % SHEET_COLS;
+    const row = Math.floor(index / SHEET_COLS);
+    return {
+        sx: col * (TILE_SIZE + TILE_MARGIN) + TILE_MARGIN,
+        sy: row * (TILE_SIZE + TILE_MARGIN) + TILE_MARGIN
+    };
 }
 
-function createHouseSprite() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 16;
-    const g = c.getContext('2d');
-    g.fillStyle = '#a33';
-    g.beginPath();
-    g.moveTo(1, 7);
-    g.lineTo(8, 1);
-    g.lineTo(15, 7);
-    g.closePath();
-    g.fill();
-    g.fillStyle = '#888';
-    g.fillRect(2, 7, 12, 8);
-    g.fillStyle = '#444';
-    g.fillRect(7, 10, 2, 5);
-    return c;
-}
-
-function createVillagerSprite() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 16;
-    const g = c.getContext('2d');
-    g.fillStyle = '#55f';
-    g.fillRect(4, 6, 8, 9);
-    g.fillStyle = '#dbb';
-    g.fillRect(5, 2, 6, 4);
-    return c;
-}
-
-const sprites = {
-    grass: createCheckerboard('#6c6', '#7d7'),
-    farmland: createCheckerboard('#b97', '#aa6'),
-    house: createHouseSprite(),
-    villager: createVillagerSprite()
+// Mapping of game elements to sprite IDs from the roguelike sheet
+const SPRITE_IDS = {
+    grass: 63,
+    farmland: 579,
+    house: 1218,
+    villager: 159
 };
 
 let running = true;
@@ -87,18 +62,23 @@ function updateCounts() {
     foodCountEl.textContent = food;
 }
 
+function drawTile(id, dx, dy) {
+    const { sx, sy } = getTilePos(id);
+    ctx.drawImage(tileset, sx, sy, TILE_SIZE, TILE_SIZE, dx, dy, TILE_SIZE, TILE_SIZE);
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     // Draw tiles
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
             const tile = tiles[y][x];
-            ctx.drawImage(sprites[tile.type], x * TILE_SIZE, y * TILE_SIZE);
+            drawTile(SPRITE_IDS[tile.type], x * TILE_SIZE, y * TILE_SIZE);
         }
     }
     // Draw villagers
     for (const v of villagers) {
-        ctx.drawImage(sprites.villager, v.x * TILE_SIZE, v.y * TILE_SIZE);
+        drawTile(SPRITE_IDS.villager, v.x * TILE_SIZE, v.y * TILE_SIZE);
     }
 }
 
@@ -142,8 +122,13 @@ function gameTick() {
     draw();
 }
 
-addVillager();
-setInterval(gameTick, 100);
+function startGame() {
+    SHEET_COLS = Math.floor((tileset.width + TILE_MARGIN) / (TILE_SIZE + TILE_MARGIN));
+    addVillager();
+    setInterval(gameTick, 100);
+}
+
+tileset.addEventListener('load', startGame);
 
 document.getElementById('toggleSim').addEventListener('click', () => {
     running = !running;
