@@ -9,6 +9,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - The game map scales to your browser, covering 95% of its width and 60% of its height when the world is generated.
 - The colony begins with a single house placed at a random location and the first villager starts on that house. Farmland must be created by villagers.
 - Villagers search for farmland with crops, harvest a single unit of food, then carry it back to the nearest house. Harvested farmland remains farmland.
+- Villager movement now uses pathfinding to avoid water so they won't get stuck while walking to their destinations.
 - When villagers have no immediate task they now wait in place instead of wandering randomly.
 - Houses store deposited food. Each house provides housing for five villagers and is given a procedurally generated name.
 - When the population has reached the current housing capacity and at least 20 food is available, a villager on a grass tile will build a new house.
