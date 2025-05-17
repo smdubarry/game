@@ -63,13 +63,9 @@ export function getHousingCapacity() {
     return houseCount * 5;
 }
 
-function isTileOccupied(x, y, ignore) {
+function isTileOccupied(x, y) {
     if (x < 0 || y < 0 || x >= GRID_WIDTH || y >= GRID_HEIGHT) return true;
     if (tiles[y][x].type === 'water') return true;
-    for (const v of villagers) {
-        if (v === ignore) continue;
-        if (v.x === x && v.y === y) return true;
-    }
     return false;
 }
 
@@ -133,7 +129,7 @@ function moveTowards(v, target) {
     else if (v.x > target.x) newX--;
     else if (v.y < target.y) newY++;
     else if (v.y > target.y) newY--;
-    if (!isTileOccupied(newX, newY, v)) {
+    if (!isTileOccupied(newX, newY)) {
         v.x = newX;
         v.y = newY;
     }
@@ -306,7 +302,7 @@ export function stepVillager(v, index, ticks, log) {
 
     if (!v.task) {
         v.target = findNearestCrop(v.x, v.y);
-        v.task = v.target ? 'gather' : 'wander';
+        v.task = v.target ? 'gather' : 'wait';
     }
 
     if (v.task === 'gather') {
@@ -326,13 +322,17 @@ export function stepVillager(v, index, ticks, log) {
             moveTowards(v, v.target);
         }
     } else {
-        const dir = Math.floor(Math.random() * 4);
-        if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y, v)) v.x--;
-        if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y, v)) v.x++;
-        if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1, v)) v.y--;
-        if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1, v)) v.y++;
-        v.task = null;
-        status = 'wandering';
+        if (v.task === 'wait') {
+            status = 'waiting';
+        } else {
+            const dir = Math.floor(Math.random() * 4);
+            if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y)) v.x--;
+            if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y)) v.x++;
+            if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1)) v.y--;
+            if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1)) v.y++;
+            v.task = null;
+            status = 'wandering';
+        }
     }
     v.status = status;
 }
