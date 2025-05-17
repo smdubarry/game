@@ -1,25 +1,27 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Size the canvas based on the current window dimensions
-canvas.width = Math.floor(window.innerWidth * 0.95);
-canvas.height = Math.floor(window.innerHeight * 0.5);
+// Size the canvas based on the current window dimensions and ensure the
+// dimensions are multiples of the tile size so no empty border is visible.
+const desiredWidth = Math.floor(window.innerWidth * 0.95);
+const desiredHeight = Math.floor(window.innerHeight * 0.6);
+const TILE_SIZE = 16;
+const GRID_WIDTH = Math.floor(desiredWidth / TILE_SIZE);
+const GRID_HEIGHT = Math.floor(desiredHeight / TILE_SIZE);
+canvas.width = GRID_WIDTH * TILE_SIZE;
+canvas.height = GRID_HEIGHT * TILE_SIZE;
 const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
 const houseCountEl = document.getElementById('houseCount');
+const timeCountEl = document.getElementById('timeCount');
 const logEl = document.getElementById('log');
 
 function log(msg) {
     const div = document.createElement('div');
-    const time = new Date().toLocaleTimeString();
-    div.textContent = `[${time}] ${msg}`;
+    div.textContent = `[${ticks}] ${msg}`;
     logEl.prepend(div);
     logEl.scrollTop = 0;
 }
-
-const TILE_SIZE = 16;
-const GRID_WIDTH = Math.floor(canvas.width / TILE_SIZE);
-const GRID_HEIGHT = Math.floor(canvas.height / TILE_SIZE);
 
 // Image containing all sprites from the Kenney roguelike/RPG pack
 ctx.imageSmoothingEnabled = false;
@@ -58,7 +60,8 @@ const FOOD_EMOJIS = [
     '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}'
 ];
 
-const CORPSE_EMOJIS = ["\u{1F480}", "\u{2620}\u{FE0F}"];
+// Single emoji used for corpses
+const CORPSE_EMOJI = "\u{2620}\u{FE0F}";
 const NAME_SYLLABLES = [
     'an','bel','cor','dan','el','fin','gar','hal','ith','jor','kel','lim',
     'mor','nal','or','pal','quil','rin','sor','tur','um','vor','wil','xan',
@@ -86,6 +89,7 @@ let running = true;
 let food = 0;
 let houseCount = 0;
 let farmlandCount = 0;
+let ticks = 0;
 
 function countHouses() {
     let count = 0;
@@ -108,6 +112,12 @@ function getHousingCapacity() {
 }
 
 function isTileOccupied(x, y, ignore) {
+    if (x < 0 || y < 0 || x >= GRID_WIDTH || y >= GRID_HEIGHT) return true;
+    if (tiles[y][x].type === 'water') return true;
+    for (const v of villagers) {
+        if (v === ignore) continue;
+        if (v.x === x && v.y === y) return true;
+    }
     return false;
 }
 
@@ -215,7 +225,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             cropEmoji: null,
             stored: 0,
             name: null,
-            corpseEmoji: null
+            corpseEmoji: null,
+            corpseName: null
         };
     }
 }
@@ -241,7 +252,8 @@ function generateLandscape() {
     randomWalkTerrain('water', 5, 250);
     randomWalkTerrain('forest', 8, 300);
     randomWalkTerrain('mountain', 6, 180);
-    randomWalkTerrain('ore', 4, 120);
+    // Fewer walkers and steps to make ore deposits rarer
+    randomWalkTerrain('ore', 2, 80);
 }
 
 generateLandscape();
@@ -294,6 +306,7 @@ function updateCounts() {
     populationCountEl.textContent = villagers.length;
     foodCountEl.textContent = food;
     houseCountEl.textContent = houseCount;
+    timeCountEl.textContent = ticks;
 }
 
 function draw() {
@@ -350,7 +363,8 @@ function stepVillager(v, index) {
     const deathChance = Math.min(1, v.age / 1000);
     if (Math.random() < deathChance) {
         log(`${v.name} passed away of old age`);
-        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
+        tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
         return;
     }
@@ -362,7 +376,8 @@ function stepVillager(v, index) {
     v.health -= 0.1;
     if (v.health <= 0) {
         log(`${v.name} died`);
-        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJIS[Math.floor(Math.random() * CORPSE_EMOJIS.length)];
+        tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
+        tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
         return;
     }
@@ -490,6 +505,8 @@ let spawnTimer = 200;
 function gameTick() {
     if (!running) return;
 
+    ticks++;
+
     // Grow food on farmland tiles
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
@@ -585,7 +602,10 @@ function updateTooltip() {
     } else {
         lines.push('Grass');
     }
-    if (tile.corpseEmoji) lines.push(`Corpse: ${tile.corpseEmoji}`);
+    if (tile.corpseEmoji) {
+        const name = tile.corpseName ? ` of ${tile.corpseName}` : '';
+        lines.push(`Corpse${name}: ${tile.corpseEmoji}`);
+    }
 
     const here = villagers.filter(v => v.x === hoverX && v.y === hoverY);
     for (const v of here) {
