@@ -1,5 +1,5 @@
 import { TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, COLORS, EMOJIS, FOOD_EMOJIS, tiles, generateLandscape } from './tiles.js';
-import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, generateHouseName, houseCount } from './villager.js';
+import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, generateHouseName, houseCount, getRandomHousePos } from './villager.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -224,5 +224,10 @@ document.getElementById('toggleSim').addEventListener('click', () => {
 });
 
 document.getElementById('addVillager').addEventListener('click', () => {
-    addVillager(undefined, undefined, log);
+    const pos = getRandomHousePos();
+    if (pos) {
+        addVillager(pos.x, pos.y, log);
+    } else {
+        addVillager(undefined, undefined, log);
+    }
 });
