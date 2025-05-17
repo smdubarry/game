@@ -10,30 +10,36 @@ const GRID_HEIGHT = Math.floor(canvas.height / TILE_SIZE);
 const TILE_MARGIN = 1;
 
 // Image containing all sprites from the Kenney roguelike/RPG pack
-const tileset = new Image();
-tileset.src = 'kenney_roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png';
-let SHEET_COLS = 57; // default, will be recalculated on load
-
 ctx.imageSmoothingEnabled = false;
 
-// Helper to compute the source position of a tile ID in the spritesheet
-function getTilePos(id) {
-    const index = id - 1;
-    const col = index % SHEET_COLS;
-    const row = Math.floor(index / SHEET_COLS);
-    return {
-        sx: col * (TILE_SIZE + TILE_MARGIN) + TILE_MARGIN,
-        sy: row * (TILE_SIZE + TILE_MARGIN) + TILE_MARGIN
-    };
+// Emoji characters used for rendering game entities
+const EMOJIS = {
+    grass: '🟩',
+    farmland: '🟫',
+    crop: '🌾',
+    house: '🏠',
+    villager: '😀'
+};
+
+const NAME_SYLLABLES = [
+    'an','bel','cor','dan','el','fin','gar','hal','ith','jor','kel','lim',
+    'mor','nal','or','pal','quil','rin','sor','tur','um','vor','wil','xan',
+    'yor','zor'
+];
+
+function generateName() {
+    const count = 2 + Math.floor(Math.random() * 2);
+    let name = '';
+    for (let i = 0; i < count; i++) {
+        name += NAME_SYLLABLES[Math.floor(Math.random() * NAME_SYLLABLES.length)];
+    }
+    return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-// Mapping of game elements to sprite IDs from the roguelike sheet
-const SPRITE_IDS = {
-    grass: 63,
-    farmland: 579,
-    house: 1218,
-    villager: 159
-};
+let houseIndex = 1;
+function generateHouseName() {
+    return 'House ' + houseIndex++;
+}
 
 let running = true;
 let food = 0;
@@ -130,7 +136,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
         tiles[y][x] = {
             type,
             hasCrop: type === 'farmland',
-            stored: 0
+            stored: 0,
+            name: null
         };
     }
 }
@@ -141,6 +148,7 @@ const startY = Math.floor(GRID_HEIGHT / 2);
 tiles[startY][startX].type = 'house';
 tiles[startY][startX].hasCrop = false;
 tiles[startY][startX].stored = 0;
+tiles[startY][startX].name = generateHouseName();
 
 const villagers = [];
 function addVillager(x, y) {
@@ -152,7 +160,10 @@ function addVillager(x, y) {
         carrying: 0,
         task: null,
         target: null,
-        hunger: 100
+        hunger: 100,
+        age: 0,
+        lifespan: 2000 + Math.floor(Math.random() * 1000),
+        name: generateName()
     });
     updateCounts();
 }
@@ -164,27 +175,36 @@ function updateCounts() {
     houseCountEl.textContent = houseCount;
 }
 
-function drawTile(id, dx, dy) {
-    const { sx, sy } = getTilePos(id);
-    ctx.drawImage(tileset, sx, sy, TILE_SIZE, TILE_SIZE, dx, dy, TILE_SIZE, TILE_SIZE);
-}
-
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = TILE_SIZE + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
     // Draw tiles
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
             const tile = tiles[y][x];
-            drawTile(SPRITE_IDS[tile.type], x * TILE_SIZE, y * TILE_SIZE);
+            let emoji = EMOJIS[tile.type];
+            if (tile.type === 'farmland' && tile.hasCrop) {
+                emoji = EMOJIS.crop;
+            }
+            ctx.fillText(emoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
         }
     }
+
     // Draw villagers
     for (const v of villagers) {
-        drawTile(SPRITE_IDS.villager, v.x * TILE_SIZE, v.y * TILE_SIZE);
+        ctx.fillText(EMOJIS.villager, v.x * TILE_SIZE + TILE_SIZE / 2, v.y * TILE_SIZE + TILE_SIZE / 2);
     }
 }
 
 function stepVillager(v, index) {
+    v.age++;
+    if (v.age >= v.lifespan) {
+        villagers.splice(index, 1);
+        return;
+    }
     if (v.actionTimer > 0) {
         v.actionTimer--;
         return;
@@ -212,6 +232,7 @@ function stepVillager(v, index) {
             tile.type = 'house';
             tile.hasCrop = false;
             tile.stored = 0;
+            tile.name = generateHouseName();
             houseCount++;
             v.task = null;
             v.target = null;
@@ -324,13 +345,12 @@ function gameTick() {
 }
 
 function startGame() {
-    SHEET_COLS = Math.floor((tileset.width + TILE_MARGIN) / (TILE_SIZE + TILE_MARGIN));
     countHouses();
     addVillager();
     setInterval(gameTick, 100);
 }
 
-tileset.addEventListener('load', startGame);
+startGame();
 
 document.getElementById('toggleSim').addEventListener('click', () => {
     running = !running;
@@ -339,4 +359,36 @@ document.getElementById('toggleSim').addEventListener('click', () => {
 
 document.getElementById('addVillager').addEventListener('click', () => {
     addVillager();
+});
+
+const tooltip = document.getElementById('tooltip');
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+    const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+    tooltip.style.left = e.clientX + 10 + 'px';
+    tooltip.style.top = e.clientY + 10 + 'px';
+
+    let content = '';
+    const villager = villagers.find(v => v.x === x && v.y === y);
+    if (villager) {
+        content = `<strong>${villager.name}</strong><br>` +
+                  `Age: ${villager.age}/${villager.lifespan}<br>` +
+                  `Hunger: ${Math.floor(villager.hunger)}`;
+    } else if (tiles[y] && tiles[y][x] && tiles[y][x].type === 'house') {
+        const house = tiles[y][x];
+        content = `<strong>${house.name}</strong><br>` +
+                  `Stored Food: ${house.stored}`;
+    }
+
+    if (content) {
+        tooltip.innerHTML = content;
+        tooltip.style.display = 'block';
+    } else {
+        tooltip.style.display = 'none';
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
 });
