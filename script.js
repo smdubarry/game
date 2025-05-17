@@ -445,6 +445,7 @@ function gameTick() {
     countFarmland();
     updateCounts();
     draw();
+    updateTooltip();
 }
 
 function startGame() {
@@ -466,34 +467,64 @@ document.getElementById('addVillager').addEventListener('click', () => {
 });
 
 const tooltip = document.getElementById('tooltip');
-canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
-    const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
-    tooltip.style.left = e.clientX + 10 + 'px';
-    tooltip.style.top = e.clientY + 10 + 'px';
+let hoverX = null;
+let hoverY = null;
+let hoverScreenX = 0;
+let hoverScreenY = 0;
+let hovering = false;
 
-    let content = '';
-    const villager = villagers.find(v => v.x === x && v.y === y);
-    if (villager) {
-        content = `<strong>${villager.name}</strong><br>` +
-                  `Age: ${villager.age}/${villager.lifespan}<br>` +
-                  `Hunger: ${Math.floor(villager.hunger)}<br>` +
-                  `Status: ${villager.status}`;
-    } else if (tiles[y] && tiles[y][x] && tiles[y][x].type === 'house') {
-        const house = tiles[y][x];
-        content = `<strong>${house.name}</strong><br>` +
-                  `Stored Food: ${house.stored}`;
+function updateTooltip() {
+    if (!hovering) return;
+    if (hoverX === null || hoverY === null ||
+        hoverX < 0 || hoverY < 0 ||
+        hoverX >= GRID_WIDTH || hoverY >= GRID_HEIGHT) {
+        tooltip.style.display = 'none';
+        return;
     }
 
+    const tile = tiles[hoverY][hoverX];
+    const lines = [];
+
+    if (tile.type === 'house') {
+        lines.push(`<strong>${tile.name}</strong>`, `Stored Food: ${tile.stored}`);
+    } else if (tile.type === 'farmland') {
+        let info = 'Farmland';
+        if (tile.hasCrop) info += ` - Crop: ${tile.cropEmoji}`;
+        lines.push(info);
+    } else {
+        lines.push('Grass');
+    }
+
+    const here = villagers.filter(v => v.x === hoverX && v.y === hoverY);
+    for (const v of here) {
+        lines.push(`<strong>${v.name}</strong> ${v.emoji}`,
+                   `Age: ${v.age}/${v.lifespan}`,
+                   `Hunger: ${Math.floor(v.hunger)}`,
+                   `Status: ${v.status}`);
+    }
+
+    const content = lines.join('<br>');
     if (content) {
         tooltip.innerHTML = content;
+        tooltip.style.left = hoverScreenX + 10 + 'px';
+        tooltip.style.top = hoverScreenY + 10 + 'px';
         tooltip.style.display = 'block';
     } else {
         tooltip.style.display = 'none';
     }
+}
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    hoverX = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+    hoverY = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+    hoverScreenX = e.clientX;
+    hoverScreenY = e.clientY;
+    hovering = true;
+    updateTooltip();
 });
 
 canvas.addEventListener('mouseleave', () => {
+    hovering = false;
     tooltip.style.display = 'none';
 });

@@ -11,7 +11,8 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - When the population has reached the current housing capacity and at least 20 food is available, a villager on a grass tile will build a new house.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
 - Villagers slowly lose hunger and age over time. They eat stored food when hungry and die if their hunger runs out or they surpass their lifespan. Villagers can share the same grid space.
-- Hovering over a villager or house reveals a tooltip with its name and status.
+- Hovering over any tile shows a tooltip listing everything on that space. The
+  tooltip updates continuously even when the mouse stays still.
 - Food, population and house counts are shown beneath the canvas and update continuously.
 - A scrolling log beneath the counts records notable events.
 
