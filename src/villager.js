@@ -236,19 +236,18 @@ export function stepVillager(v, index, ticks, log) {
         }
     }
 
-    const needed = farmlandCount < villagers.length;
+    const food = getTotalFood();
+    const needed = farmlandCount < villagers.length || food < villagers.length * 2;
     if (!v.carrying && needed) {
         if (tile.type === 'grass') {
-            if (spendFood(5)) {
-                tile.type = 'farmland';
-                tile.hasCrop = false;
-                tile.cropEmoji = null;
-                farmlandCount++;
-                if (log) log(`${v.name} prepared farmland`);
-                v.task = null;
-                v.target = null;
-                status = 'working';
-            }
+            tile.type = 'farmland';
+            tile.hasCrop = false;
+            tile.cropEmoji = null;
+            farmlandCount++;
+            if (log) log(`${v.name} prepared farmland`);
+            v.task = null;
+            v.target = null;
+            status = 'working';
         } else {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 v.target = findNearestGrass(v.x, v.y);
