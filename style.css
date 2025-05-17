@@ -25,3 +25,17 @@ body {
     pointer-events: none;
     display: none;
 }
+
+#log {
+    max-height: 150px;
+    overflow-y: auto;
+    background: #fff;
+    border-top: 1px solid #ccc;
+    margin: 10px;
+    padding: 5px;
+    font-size: 14px;
+    text-align: left;
+}
+#log div {
+    margin: 2px 0;
+}
