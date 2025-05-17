@@ -142,6 +142,23 @@ function findNearestCrop(x, y) {
     return best;
 }
 
+function findNearestGrass(x, y) {
+    let best = null;
+    let bestDist = Infinity;
+    for (let yy = 0; yy < GRID_HEIGHT; yy++) {
+        for (let xx = 0; xx < GRID_WIDTH; xx++) {
+            if (tiles[yy][xx].type === 'grass') {
+                const d = Math.abs(x - xx) + Math.abs(y - yy);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = { x: xx, y: yy };
+                }
+            }
+        }
+    }
+    return best;
+}
+
 function moveTowards(v, target) {
     if (!target) return;
     let newX = v.x;
@@ -373,15 +390,30 @@ function stepVillager(v, index) {
         }
     }
 
-    // Convert grass to farmland when needed and food is available
-    if (!v.carrying && tile.type === 'grass') {
-        if (((farmlandCount < villagers.length) || (food < villagers.length * 2)) && spendFood(5)) {
-            tile.type = 'farmland';
-            tile.hasCrop = false;
-            tile.cropEmoji = null;
-            farmlandCount++;
-            log(`${v.name} prepared farmland`);
-            status = 'working';
+    const farmlandNeeded = (farmlandCount < villagers.length) || (food < villagers.length * 2);
+    // Seek out and convert grass to farmland when needed
+    if (!v.carrying && farmlandNeeded) {
+        if (tile.type === 'grass') {
+            if (spendFood(5)) {
+                tile.type = 'farmland';
+                tile.hasCrop = false;
+                tile.cropEmoji = null;
+                farmlandCount++;
+                log(`${v.name} prepared farmland`);
+                v.task = null;
+                v.target = null;
+                status = 'working';
+            }
+        } else {
+            if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
+                v.target = findNearestGrass(v.x, v.y);
+            }
+            if (v.target) {
+                moveTowards(v, v.target);
+                v.task = 'make_farmland';
+                status = 'seeking farmland site';
+            }
+            return;
         }
     }
 
