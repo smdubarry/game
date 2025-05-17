@@ -5,13 +5,12 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 ## Game Mechanics
 
 - The world is a grid of grass and farmland tiles.
-- Farmland tiles may appear on empty grass and have a small chance each tick to regrow crops after being harvested. Grown crops show a random food emoji.
-- Villagers search for farmland with crops, harvest a single unit of food, then carry it back to the nearest house.
-- Harvested farmland turns back into grass.
+- Villagers convert grass tiles into farmland as they walk over them. Farmland has a small chance each tick to regrow crops after being harvested. Grown crops show a random food emoji.
+- Villagers search for farmland with crops, harvest a single unit of food, then carry it back to the nearest house. Harvested farmland remains farmland.
 - Houses store deposited food. Each house provides housing for five villagers.
 - When the population has reached the current housing capacity and at least 20 food is available, a villager on a grass tile will build a new house.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
-- Villagers slowly lose hunger and age over time. They eat stored food when hungry and die if their hunger runs out or they surpass their lifespan. Villagers can no longer occupy the same grid space.
+- Villagers slowly lose hunger and age over time. They eat stored food when hungry and die if their hunger runs out or they surpass their lifespan. Villagers can share the same grid space.
 - Hovering over a villager or house reveals a tooltip with its name and status.
 - Food, population and house counts are shown beneath the canvas and update continuously.
 
