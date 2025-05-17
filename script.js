@@ -4,13 +4,11 @@ const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
 const houseCountEl = document.getElementById('houseCount');
 const logEl = document.getElementById('log');
-const timeCountEl = document.getElementById('timeCount');
-
-let tick = 0;
 
 function log(msg) {
     const div = document.createElement('div');
-    div.textContent = `[${tick}] ${msg}`;
+    const time = new Date().toLocaleTimeString();
+    div.textContent = `[${time}] ${msg}`;
     logEl.prepend(div);
     logEl.scrollTop = 0;
 }
@@ -84,8 +82,6 @@ let running = true;
 let food = 0;
 let houseCount = 0;
 let farmlandCount = 0;
-let gameInterval = null;
-const baseInterval = 100;
 
 function countHouses() {
     let count = 0;
@@ -108,12 +104,6 @@ function getHousingCapacity() {
 }
 
 function isTileOccupied(x, y, ignore) {
-    if (x < 0 || y < 0 || x >= GRID_WIDTH || y >= GRID_HEIGHT) return true;
-    const tile = tiles[y][x];
-    if (tile.type === 'water') return true;
-    for (const v of villagers) {
-        if (v !== ignore && v.x === x && v.y === y) return true;
-    }
     return false;
 }
 
@@ -247,7 +237,7 @@ function generateLandscape() {
     randomWalkTerrain('water', 5, 250);
     randomWalkTerrain('forest', 8, 300);
     randomWalkTerrain('mountain', 6, 180);
-    randomWalkTerrain('ore', 3, 80); // less plentiful ore
+    randomWalkTerrain('ore', 4, 120);
 }
 
 generateLandscape();
@@ -301,7 +291,6 @@ function updateCounts() {
     populationCountEl.textContent = villagers.length;
     foodCountEl.textContent = food;
     houseCountEl.textContent = houseCount;
-    timeCountEl.textContent = tick;
 }
 
 function draw() {
@@ -490,19 +479,12 @@ function stepVillager(v, index) {
         v.task = null;
         status = 'wandering';
     }
-    if (['gathering','returning food','seeking food','eating','depositing'].includes(status)) {
-        v.status = 'gathering food';
-    } else if (['working','seeking farmland site','building'].includes(status)) {
-        v.status = 'preparing farmland';
-    } else {
-        v.status = 'wandering';
-    }
+    v.status = status;
 }
 
 let spawnTimer = 200;
 function gameTick() {
     if (!running) return;
-    tick++;
 
     // Grow food on farmland tiles
     for (let y = 0; y < GRID_HEIGHT; y++) {
@@ -549,8 +531,7 @@ function startGame() {
     countHouses();
     countFarmland();
     addVillager(startX, startY);
-    gameInterval = setInterval(gameTick, baseInterval);
-    if (typeof updateSpeed === 'function') updateSpeed();
+    setInterval(gameTick, 100);
 }
 
 startGame();
@@ -563,18 +544,6 @@ document.getElementById('toggleSim').addEventListener('click', () => {
 document.getElementById('addVillager').addEventListener('click', () => {
     addVillager();
 });
-
-const speedControl = document.getElementById('speedControl');
-const speedLabel = document.getElementById('speedLabel');
-
-function updateSpeed() {
-    const mult = parseFloat(speedControl.value);
-    speedLabel.textContent = mult.toFixed(2) + 'x';
-    clearInterval(gameInterval);
-    gameInterval = setInterval(gameTick, baseInterval / mult);
-}
-
-speedControl.addEventListener('input', updateSpeed);
 
 const tooltip = document.getElementById('tooltip');
 let hoverX = null;
