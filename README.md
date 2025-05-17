@@ -6,6 +6,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 
 - The world is procedurally generated with grass, water, forests, mountains and ore deposits using roaming walkers for more natural looking terrain. Grass and farmland tiles are drawn with darker colors. Forest tiles show a tree emoji.
 - Villagers create new farmland when stored food is low or there are fewer than two fields per villager. They will travel to the nearest grass tile and convert it into farmland. Farmland has a small chance each tick to regrow crops after being harvested. Grown crops show a random food emoji.
+- When multiple villagers are preparing new fields, the game counts how many grass tiles are already targeted so others continue their tasks once the need is met.
 - The game map scales to your browser, covering 95% of its width and 60% of its height when the world is generated.
 - The colony begins with a single house placed at a random location and the first villager starts on that house. Farmland must be created by villagers.
 - Villagers search for farmland with crops, harvest a single unit of food, then carry it back to the nearest house. Harvested farmland remains farmland.
