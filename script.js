@@ -47,12 +47,12 @@ function countHouses() {
     houseCount = count;
 }
 
-function findNearestHouse(x, y) {
+function findNearestHouse(x, y, requireFood = false) {
     let best = null;
     let bestDist = Infinity;
     for (let yy = 0; yy < GRID_HEIGHT; yy++) {
         for (let xx = 0; xx < GRID_WIDTH; xx++) {
-            if (tiles[yy][xx].type === 'house') {
+            if (tiles[yy][xx].type === 'house' && (!requireFood || tiles[yy][xx].stored > 0)) {
                 const d = Math.abs(x - xx) + Math.abs(y - yy);
                 if (d < bestDist) {
                     bestDist = d;
@@ -90,6 +90,34 @@ function moveTowards(v, target) {
     else if (v.y > target.y) v.y--;
 }
 
+function getTotalFood() {
+    let total = 0;
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'house') total += t.stored;
+        }
+    }
+    return total;
+}
+
+function spendFood(amount) {
+    if (getTotalFood() < amount) return false;
+    let remaining = amount;
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'house' && t.stored > 0) {
+                const use = Math.min(t.stored, remaining);
+                t.stored -= use;
+                remaining -= use;
+                if (remaining <= 0) return true;
+            }
+        }
+    }
+    return false;
+}
+
 const tiles = [];
 for (let y = 0; y < GRID_HEIGHT; y++) {
     tiles[y] = [];
@@ -97,7 +125,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
         const type = Math.random() < 0.1 ? 'farmland' : 'grass';
         tiles[y][x] = {
             type,
-            hasCrop: type === 'farmland'
+            hasCrop: type === 'farmland',
+            stored: 0
         };
     }
 }
@@ -107,6 +136,7 @@ const startX = Math.floor(GRID_WIDTH / 2);
 const startY = Math.floor(GRID_HEIGHT / 2);
 tiles[startY][startX].type = 'house';
 tiles[startY][startX].hasCrop = false;
+tiles[startY][startX].stored = 0;
 
 const villagers = [];
 function addVillager(x, y) {
@@ -116,12 +146,14 @@ function addVillager(x, y) {
         actionTimer: 0,
         carrying: 0,
         task: null,
-        target: null
+        target: null,
+        hunger: 100
     });
     updateCounts();
 }
 
 function updateCounts() {
+    food = getTotalFood();
     populationCountEl.textContent = villagers.length;
     foodCountEl.textContent = food;
     houseCountEl.textContent = houseCount;
@@ -147,9 +179,15 @@ function draw() {
     }
 }
 
-function stepVillager(v) {
+function stepVillager(v, index) {
     if (v.actionTimer > 0) {
         v.actionTimer--;
+        return;
+    }
+
+    v.hunger -= 0.05;
+    if (v.hunger <= 0) {
+        villagers.splice(index, 1);
         return;
     }
 
@@ -157,7 +195,7 @@ function stepVillager(v) {
 
     // Deposit carried food at a house
     if (v.carrying && tile.type === 'house') {
-        food += v.carrying;
+        tile.stored += v.carrying;
         v.carrying = 0;
         v.task = null;
         v.target = null;
@@ -165,10 +203,30 @@ function stepVillager(v) {
 
     // Build a house on grass if enough food
     if (!v.carrying && tile.type === 'grass' && food >= 20) {
-        tile.type = 'house';
-        food -= 20;
-        v.task = null;
-        v.target = null;
+        if (spendFood(20)) {
+            tile.type = 'house';
+            tile.hasCrop = false;
+            tile.stored = 0;
+            v.task = null;
+            v.target = null;
+        }
+    }
+
+    // Eat if hungry
+    if (v.hunger < 50 || v.task === 'eat') {
+        if (tile.type === 'house' && tile.stored > 0) {
+            tile.stored--;
+            v.hunger = 100;
+            v.task = null;
+            v.target = null;
+        } else {
+            if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
+                v.target = findNearestHouse(v.x, v.y, true);
+            }
+            moveTowards(v, v.target);
+            v.task = 'eat';
+        }
+        return;
     }
 
     // If carrying food, head to nearest house
@@ -193,6 +251,7 @@ function stepVillager(v) {
             const targetTile = tiles[v.y][v.x];
             if (targetTile.type === 'farmland' && targetTile.hasCrop) {
                 targetTile.hasCrop = false;
+                targetTile.type = 'grass';
                 v.carrying = 1;
             }
             v.task = null;
@@ -232,14 +291,24 @@ function gameTick() {
         }
     }
 
-    for (const v of villagers) {
-        stepVillager(v);
+    for (let i = villagers.length - 1; i >= 0; i--) {
+        stepVillager(villagers[i], i);
     }
 
     spawnTimer--;
-    if (spawnTimer <= 0 && food >= 5) {
-        addVillager();
-        food -= 5;
+    if (spawnTimer <= 0) {
+        const choices = [];
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            for (let x = 0; x < GRID_WIDTH; x++) {
+                const t = tiles[y][x];
+                if (t.type === 'house' && t.stored > 0) choices.push({ x, y, t });
+            }
+        }
+        if (choices.length > 0) {
+            const h = choices[Math.floor(Math.random() * choices.length)];
+            h.t.stored--;
+            addVillager(h.x, h.y);
+        }
         spawnTimer = 200;
     }
 
