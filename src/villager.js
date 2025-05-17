@@ -236,8 +236,7 @@ export function stepVillager(v, index, ticks, log) {
         }
     }
 
-    const food = getTotalFood();
-    const needed = farmlandCount < villagers.length || food < villagers.length * 2;
+    const needed = farmlandCount < villagers.length;
     if (!v.carrying && needed) {
         if (tile.type === 'grass') {
             tile.type = 'farmland';
