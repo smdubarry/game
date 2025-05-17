@@ -320,7 +320,7 @@ export function stepVillager(v, index, ticks, log) {
             if (tile.type === 'house' && tile.stored > 0) {
                 tile.stored--;
                 v.health = 100;
-                // Eating is now silent to reduce log spam
+                if (log) log(`${v.name} ate at ${tile.name}`);
                 releaseGatherTarget(v);
                 v.task = null;
                 v.target = null;
