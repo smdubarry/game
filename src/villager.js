@@ -472,7 +472,7 @@ export function stepVillager(v, index, ticks, log) {
             const targetTile = tiles[v.y][v.x];
             if (targetTile.type === 'forest' && targetTile.hasTree) {
                 targetTile.hasTree = false;
-                targetTile.treeTimer = 100;
+                targetTile.treeTimer = 1000;
                 v.carryingWood = 1;
             }
             targetTile.targeted = false;
