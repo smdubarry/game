@@ -352,7 +352,10 @@ export function stepVillager(v, index, ticks, log) {
             tile.type = 'farmland';
             tile.hasCrop = false;
             tile.cropEmoji = null;
-            tile.targeted = false;
+            if (tile.targeted) {
+                tile.targeted = false;
+                farmlandTargetCount--;
+            }
             farmlandCount++;
             if (log) log(`${v.name} prepared farmland`);
             releaseTarget(v);
