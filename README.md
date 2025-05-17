@@ -6,17 +6,17 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 
 - The world is procedurally generated with grass, water, forests, mountains and ore deposits using roaming walkers for more natural looking terrain. Grass and farmland tiles are drawn with darker colors. Forest tiles show a tree emoji.
 - Villagers create new farmland when stored food is low or there are too few fields for the population. They will travel to the nearest grass tile and convert it into farmland. Farmland has a small chance each tick to regrow crops after being harvested. Grown crops show a random food emoji.
-- The game map scales to your browser, covering 95% of its width and 50% of its height when the world is generated.
+- The game map scales to your browser, covering 95% of its width and 60% of its height when the world is generated.
 - The colony begins with a single house placed at a random location and the first villager starts on that house. Farmland must be created by villagers.
 - Villagers search for farmland with crops, harvest a single unit of food, then carry it back to the nearest house. Harvested farmland remains farmland.
 - Houses store deposited food. Each house provides housing for five villagers and is given a procedurally generated name.
 - When the population has reached the current housing capacity and at least 20 food is available, a villager on a grass tile will build a new house.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
-- Villagers slowly lose health and age over time. They eat stored food when low on health and have an increasing chance to die of old age each tick, from 0% at birth to 100% after 1000 ticks. Dead villagers leave behind a skull or skeleton.
+- Villagers slowly lose health and age over time. They eat stored food when low on health and have an increasing chance to die of old age each tick, from 0% at birth to 100% after 1000 ticks. Dead villagers leave behind a skull-and-crossbones showing their name.
 - Hovering over any tile shows a tooltip listing everything on that space. The
   tooltip updates continuously even when the mouse stays still.
-- Food, population and house counts are shown beneath the canvas and update continuously.
-- A scrolling log beneath the counts records notable events with the most recent entry at the top. Log entries include timestamps and omit food harvest and deposit messages.
+- Food, population, house counts and the current tick are shown beneath the canvas and update continuously.
+- A scrolling log beneath the counts records notable events with the most recent entry at the top. Log entries include tick counts and omit food harvest and deposit messages.
 
 ## How to Play
 
