@@ -24,7 +24,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 2. Watch as the villagers move around and expand their colony.
 3. Use the **Pause** button to pause or resume the simulation.
 4. Use **Add Villager** to introduce a new villager manually.
-5. Use the **0.5x** and **2x** buttons to change the simulation speed.
+5. Adjust the **Speed** slider to run the simulation faster or slower.
 
 Keep this README up to date with any future changes to game behavior.
 
