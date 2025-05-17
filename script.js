@@ -14,12 +14,29 @@ ctx.imageSmoothingEnabled = false;
 
 // Emoji characters used for rendering game entities
 const EMOJIS = {
-    grass: '🟩',
-    farmland: '🟫',
-    crop: '🌾',
-    house: '🏠',
-    villager: '😀'
+    grass: '\u{1F7E9}',
+    farmland: '\u{1F7EB}',
+    house: '\u{1F3E0}'
 };
+
+const VILLAGER_EMOJIS = [
+    '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
+    '\u{1F3C3}\u{FE0F}\u{200D}\u{2640}\u{FE0F}',
+    '\u{1F6B4}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
+    '\u{1F6B4}\u{FE0F}\u{200D}\u{2640}\u{FE0F}',
+    '\u{1F3CB}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
+    '\u{1F3CB}\u{FE0F}\u{200D}\u{2640}\u{FE0F}',
+    '\u{1F93A}',
+    '\u{1F93E}\u{200D}\u{2642}\u{FE0F}',
+    '\u{1F93E}\u{200D}\u{2640}\u{FE0F}',
+    '\u{1F3CC}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
+    '\u{1F3CC}\u{FE0F}\u{200D}\u{2640}\u{FE0F}'
+];
+
+const FOOD_EMOJIS = [
+    '\u{1F34E}','\u{1F34A}','\u{1F347}','\u{1F353}','\u{1F352}',
+    '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}'
+];
 
 const NAME_SYLLABLES = [
     'an','bel','cor','dan','el','fin','gar','hal','ith','jor','kel','lim',
@@ -55,6 +72,10 @@ function countHouses() {
 
 function getHousingCapacity() {
     return houseCount * 5;
+}
+
+function isTileOccupied(x, y, ignore) {
+    return villagers.some(v => v !== ignore && v.x === x && v.y === y);
 }
 
 function findNearestHouse(x, y, requireFood = false) {
@@ -94,10 +115,16 @@ function findNearestCrop(x, y) {
 
 function moveTowards(v, target) {
     if (!target) return;
-    if (v.x < target.x) v.x++;
-    else if (v.x > target.x) v.x--;
-    else if (v.y < target.y) v.y++;
-    else if (v.y > target.y) v.y--;
+    let newX = v.x;
+    let newY = v.y;
+    if (v.x < target.x) newX++;
+    else if (v.x > target.x) newX--;
+    else if (v.y < target.y) newY++;
+    else if (v.y > target.y) newY--;
+    if (!isTileOccupied(newX, newY, v)) {
+        v.x = newX;
+        v.y = newY;
+    }
 }
 
 function getTotalFood() {
@@ -136,6 +163,7 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
         tiles[y][x] = {
             type,
             hasCrop: type === 'farmland',
+            cropEmoji: type === 'farmland' ? FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)] : null,
             stored: 0,
             name: null
         };
@@ -149,13 +177,22 @@ tiles[startY][startX].type = 'house';
 tiles[startY][startX].hasCrop = false;
 tiles[startY][startX].stored = 0;
 tiles[startY][startX].name = generateHouseName();
+tiles[startY][startX].cropEmoji = null;
 
 const villagers = [];
 function addVillager(x, y) {
     if (villagers.length >= getHousingCapacity()) return;
+    let vx = x !== undefined ? x : Math.floor(Math.random() * GRID_WIDTH);
+    let vy = y !== undefined ? y : Math.floor(Math.random() * GRID_HEIGHT);
+    let attempts = 0;
+    while (isTileOccupied(vx, vy) && attempts < 100) {
+        vx = Math.floor(Math.random() * GRID_WIDTH);
+        vy = Math.floor(Math.random() * GRID_HEIGHT);
+        attempts++;
+    }
     villagers.push({
-        x: x || Math.floor(Math.random() * GRID_WIDTH),
-        y: y || Math.floor(Math.random() * GRID_HEIGHT),
+        x: vx,
+        y: vy,
         actionTimer: 0,
         carrying: 0,
         task: null,
@@ -163,7 +200,8 @@ function addVillager(x, y) {
         hunger: 100,
         age: 0,
         lifespan: 2000 + Math.floor(Math.random() * 1000),
-        name: generateName()
+        name: generateName(),
+        emoji: VILLAGER_EMOJIS[Math.floor(Math.random() * VILLAGER_EMOJIS.length)]
     });
     updateCounts();
 }
@@ -187,7 +225,7 @@ function draw() {
             const tile = tiles[y][x];
             let emoji = EMOJIS[tile.type];
             if (tile.type === 'farmland' && tile.hasCrop) {
-                emoji = EMOJIS.crop;
+                emoji = tile.cropEmoji;
             }
             ctx.fillText(emoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
         }
@@ -195,7 +233,7 @@ function draw() {
 
     // Draw villagers
     for (const v of villagers) {
-        ctx.fillText(EMOJIS.villager, v.x * TILE_SIZE + TILE_SIZE / 2, v.y * TILE_SIZE + TILE_SIZE / 2);
+        ctx.fillText(v.emoji, v.x * TILE_SIZE + TILE_SIZE / 2, v.y * TILE_SIZE + TILE_SIZE / 2);
     }
 }
 
@@ -278,6 +316,7 @@ function stepVillager(v, index) {
             const targetTile = tiles[v.y][v.x];
             if (targetTile.type === 'farmland' && targetTile.hasCrop) {
                 targetTile.hasCrop = false;
+                targetTile.cropEmoji = null;
                 targetTile.type = 'grass';
                 v.carrying = 1;
             }
@@ -289,10 +328,10 @@ function stepVillager(v, index) {
     } else {
         // Wander randomly when no task
         const dir = Math.floor(Math.random() * 4);
-        if (dir === 0 && v.x > 0) v.x--;
-        if (dir === 1 && v.x < GRID_WIDTH - 1) v.x++;
-        if (dir === 2 && v.y > 0) v.y--;
-        if (dir === 3 && v.y < GRID_HEIGHT - 1) v.y++;
+        if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y, v)) v.x--;
+        if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y, v)) v.x++;
+        if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1, v)) v.y--;
+        if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1, v)) v.y++;
         v.task = null;
     }
 }
@@ -308,11 +347,13 @@ function gameTick() {
             if (t.type === 'farmland') {
                 if (!t.hasCrop && Math.random() < 0.05) {
                     t.hasCrop = true;
+                    t.cropEmoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
                 }
             } else if (t.type === 'grass') {
                 if (Math.random() < 0.001) {
                     t.type = 'farmland';
                     t.hasCrop = true;
+                    t.cropEmoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
                 }
             }
         }
