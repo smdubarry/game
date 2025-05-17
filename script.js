@@ -3,9 +3,61 @@ const ctx = canvas.getContext('2d');
 const foodCountEl = document.getElementById('foodCount');
 const populationCountEl = document.getElementById('populationCount');
 
-const TILE_SIZE = 20;
+const TILE_SIZE = 16;
 const GRID_WIDTH = Math.floor(canvas.width / TILE_SIZE);
 const GRID_HEIGHT = Math.floor(canvas.height / TILE_SIZE);
+
+ctx.imageSmoothingEnabled = false;
+
+function createCheckerboard(c1, c2) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 16;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+            g.fillStyle = (x + y) % 2 ? c1 : c2;
+            g.fillRect(x, y, 1, 1);
+        }
+    }
+    return c;
+}
+
+function createHouseSprite() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 16;
+    const g = c.getContext('2d');
+    g.fillStyle = '#a33';
+    g.beginPath();
+    g.moveTo(1, 7);
+    g.lineTo(8, 1);
+    g.lineTo(15, 7);
+    g.closePath();
+    g.fill();
+    g.fillStyle = '#888';
+    g.fillRect(2, 7, 12, 8);
+    g.fillStyle = '#444';
+    g.fillRect(7, 10, 2, 5);
+    return c;
+}
+
+function createVillagerSprite() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 16;
+    const g = c.getContext('2d');
+    g.fillStyle = '#55f';
+    g.fillRect(4, 6, 8, 9);
+    g.fillStyle = '#dbb';
+    g.fillRect(5, 2, 6, 4);
+    return c;
+}
+
+const sprites = {
+    grass: createCheckerboard('#6c6', '#7d7'),
+    farmland: createCheckerboard('#b97', '#aa6'),
+    house: createHouseSprite(),
+    villager: createVillagerSprite()
+};
 
 let running = true;
 let food = 0;
@@ -41,22 +93,12 @@ function draw() {
     for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
             const tile = tiles[y][x];
-            if (tile.type === 'farmland') {
-                ctx.fillStyle = '#8f8';
-            } else if (tile.type === 'house') {
-                ctx.fillStyle = '#888';
-            } else {
-                ctx.fillStyle = '#6c6';
-            }
-            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(sprites[tile.type], x * TILE_SIZE, y * TILE_SIZE);
         }
     }
     // Draw villagers
-    ctx.fillStyle = '#55f';
     for (const v of villagers) {
-        ctx.beginPath();
-        ctx.arc(v.x * TILE_SIZE + TILE_SIZE/2, v.y * TILE_SIZE + TILE_SIZE/2, TILE_SIZE/2 - 2, 0, Math.PI*2);
-        ctx.fill();
+        ctx.drawImage(sprites.villager, v.x * TILE_SIZE, v.y * TILE_SIZE);
     }
 }
 
