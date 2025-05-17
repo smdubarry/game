@@ -24,6 +24,6 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 1. Open `index.html` in a modern web browser.
 2. Watch as the villagers move around and expand their colony.
 3. Use the **Pause** button to pause or resume the simulation.
-4. Use **Add Villager** to introduce a new villager manually.
+4. Use **Add Villager** to introduce a new villager manually at a random house.
 
 Keep this README up to date with any future changes to game behavior.

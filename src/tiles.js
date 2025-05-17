@@ -34,6 +34,7 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             type: 'grass',
             hasCrop: false,
             cropEmoji: null,
+            targeted: false,
             stored: 0,
             name: null,
             corpseEmoji: null,
