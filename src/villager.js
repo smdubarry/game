@@ -3,6 +3,7 @@ import { tiles, GRID_WIDTH, GRID_HEIGHT, FOOD_EMOJIS, CORPSE_EMOJI } from './til
 export const villagers = [];
 export let houseCount = 0;
 export let farmlandCount = 0;
+export const FARMLAND_PER_VILLAGER = 2;
 
 const VILLAGER_EMOJIS = [
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
@@ -232,7 +233,7 @@ export function stepVillager(v, index, ticks, log) {
         }
     }
 
-    const needed = farmlandCount < villagers.length;
+    const needed = farmlandCount < villagers.length * FARMLAND_PER_VILLAGER;
     if (!v.carrying && needed) {
         if (tile.type === 'grass') {
             tile.type = 'farmland';
@@ -276,7 +277,7 @@ export function stepVillager(v, index, ticks, log) {
             }
             v.status = status;
             return;
-        } else if (farmlandCount < villagers.length) {
+        } else if (farmlandCount < villagers.length * FARMLAND_PER_VILLAGER) {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 v.target = findNearestGrass(v.x, v.y);
             }
