@@ -19,7 +19,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - Villagers lose 1 health each tick and die if it reaches zero. They no longer die of old age. When their health falls below 90 they go to the nearest house to eat and regain full health. If no food is stored, they instead convert the nearest grass tile to farmland.
 - Hovering over any tile shows a tooltip listing everything on that space. The
   tooltip updates continuously even when the mouse stays still.
-- Food, population, house counts and the current tick are shown beneath the canvas and update continuously.
+- Food, wood, population, death, house and farmland counts plus the current tick are shown beneath the canvas and update continuously.
 - A scrolling log beneath the counts records notable events with the most recent entry at the top. Log entries include tick counts and omit food harvest and deposit messages.
 
 ## How to Play

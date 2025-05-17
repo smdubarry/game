@@ -3,6 +3,7 @@ import { tiles, GRID_WIDTH, GRID_HEIGHT, FOOD_EMOJIS, CORPSE_EMOJI } from './til
 export const villagers = [];
 export let houseCount = 0;
 export let farmlandCount = 0;
+export let deathCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
 let farmlandTargetCount = 0;
 
@@ -309,6 +310,7 @@ export function stepVillager(v, index, ticks, log) {
         tiles[v.y][v.x].corpseEmoji = CORPSE_EMOJI;
         tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
+        deathCount++;
         return;
     }
 
