@@ -8,8 +8,8 @@ const logEl = document.getElementById('log');
 function log(msg) {
     const div = document.createElement('div');
     div.textContent = msg;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
+    logEl.prepend(div);
+    logEl.scrollTop = 0;
 }
 
 const TILE_SIZE = 16;
@@ -21,8 +21,12 @@ ctx.imageSmoothingEnabled = false;
 
 // Emoji characters used for rendering game entities
 const COLORS = {
-    grass: '#b6f3b6', // light green
-    farmland: '#deb887' // brown
+    grass: '#5a9c4a', // darker grass
+    farmland: '#a07a48', // darker soil
+    water: '#5dade2',
+    forest: '#2e8b57',
+    mountain: '#888888',
+    ore: '#b87333'
 };
 
 const EMOJIS = {
@@ -63,9 +67,12 @@ function generateName() {
     return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-let houseIndex = 1;
+const HOUSE_PREFIXES = ['Oak', 'Pine', 'Maple', 'Stone', 'River', 'Hill', 'Wind', 'Sun', 'Moon', 'Star', 'Iron', 'Golden', 'Silver', 'Copper', 'Shadow', 'Bright'];
+const HOUSE_SUFFIXES = ['Haven', 'Hall', 'Cottage', 'Lodge', 'Manor', 'House', 'Den', 'Retreat', 'Sanctum', 'Hold', 'Grove', 'Keep'];
 function generateHouseName() {
-    return 'House ' + houseIndex++;
+    const pre = HOUSE_PREFIXES[Math.floor(Math.random() * HOUSE_PREFIXES.length)];
+    const suf = HOUSE_SUFFIXES[Math.floor(Math.random() * HOUSE_SUFFIXES.length)];
+    return `${pre} ${suf}`;
 }
 
 let running = true;
@@ -188,6 +195,34 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
     }
 }
 
+function placePatch(type, count, minRadius, maxRadius) {
+    for (let i = 0; i < count; i++) {
+        const cx = Math.floor(Math.random() * GRID_WIDTH);
+        const cy = Math.floor(Math.random() * GRID_HEIGHT);
+        const r = minRadius + Math.floor(Math.random() * (maxRadius - minRadius + 1));
+        for (let y = cy - r; y <= cy + r; y++) {
+            for (let x = cx - r; x <= cx + r; x++) {
+                if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) continue;
+                const dx = x - cx;
+                const dy = y - cy;
+                if (dx * dx + dy * dy <= r * r) {
+                    tiles[y][x].type = type;
+                }
+            }
+        }
+    }
+}
+
+function generateLandscape() {
+    placePatch('water', 8, 3, 7);
+    placePatch('forest', 12, 3, 6);
+    placePatch('mountain', 8, 4, 8);
+    placePatch('ore', 6, 2, 5);
+    placePatch('farmland', 4, 3, 5);
+}
+
+generateLandscape();
+
 // Start with a house in the center so villagers have somewhere to deposit food
 const startX = Math.floor(GRID_WIDTH / 2);
 const startY = Math.floor(GRID_HEIGHT / 2);
@@ -197,17 +232,7 @@ tiles[startY][startX].stored = 0;
 tiles[startY][startX].name = generateHouseName();
 tiles[startY][startX].cropEmoji = null;
 
-// Surround the starting house with some farmland
-for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue;
-        const nx = startX + dx;
-        const ny = startY + dy;
-        if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
-            tiles[ny][nx].type = 'farmland';
-        }
-    }
-}
+
 
 const villagers = [];
 function addVillager(x, y) {
@@ -264,6 +289,18 @@ function draw() {
                 if (tile.hasCrop) {
                     ctx.fillText(tile.cropEmoji, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
                 }
+            } else if (tile.type === 'water') {
+                ctx.fillStyle = COLORS.water;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (tile.type === 'forest') {
+                ctx.fillStyle = COLORS.forest;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (tile.type === 'mountain') {
+                ctx.fillStyle = COLORS.mountain;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (tile.type === 'ore') {
+                ctx.fillStyle = COLORS.ore;
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             } else if (tile.type === 'house') {
                 ctx.fillStyle = COLORS.grass;
                 ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -491,6 +528,14 @@ function updateTooltip() {
         let info = 'Farmland';
         if (tile.hasCrop) info += ` - Crop: ${tile.cropEmoji}`;
         lines.push(info);
+    } else if (tile.type === 'water') {
+        lines.push('Water');
+    } else if (tile.type === 'forest') {
+        lines.push('Forest');
+    } else if (tile.type === 'mountain') {
+        lines.push('Mountain');
+    } else if (tile.type === 'ore') {
+        lines.push('Ore Deposit');
     } else {
         lines.push('Grass');
     }
