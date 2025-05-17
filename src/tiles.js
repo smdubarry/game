@@ -36,9 +36,12 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             cropEmoji: null,
             targeted: false,
             stored: 0,
+            wood: 0,
             name: null,
             corpseEmoji: null,
-            corpseName: null
+            corpseName: null,
+            hasTree: false,
+            treeTimer: 0
         };
     }
 }
@@ -50,6 +53,8 @@ export function randomWalkTerrain(type, walkers, steps) {
         for (let j = 0; j < steps; j++) {
             if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
                 tiles[y][x].type = type;
+                tiles[y][x].hasTree = type === 'forest';
+                tiles[y][x].treeTimer = 0;
             }
             const dir = Math.floor(Math.random() * 4);
             if (dir === 0 && x > 0) x--;
