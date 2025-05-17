@@ -19,6 +19,9 @@
        Houses: <span id="houseCount">0</span> |
        Time: <span id="timeCount">0</span></p>
     <div id="log" class="log"></div>
-    <script src="script.js"></script>
+    <script type="module">
+        import { startGame } from "./src/game.js";
+        startGame();
+    </script>
 </body>
 </html>
