@@ -61,6 +61,7 @@ function generateHouseName() {
 let running = true;
 let food = 0;
 let houseCount = 0;
+let farmlandCount = 0;
 
 function countHouses() {
     let count = 0;
@@ -68,6 +69,14 @@ function countHouses() {
         for (let t of row) if (t.type === 'house') count++;
     }
     houseCount = count;
+}
+
+function countFarmland() {
+    let count = 0;
+    for (let row of tiles) {
+        for (let t of row) if (t.type === 'farmland') count++;
+    }
+    farmlandCount = count;
 }
 
 function getHousingCapacity() {
@@ -178,6 +187,18 @@ tiles[startY][startX].stored = 0;
 tiles[startY][startX].name = generateHouseName();
 tiles[startY][startX].cropEmoji = null;
 
+// Surround the starting house with some farmland
+for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = startX + dx;
+        const ny = startY + dy;
+        if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
+            tiles[ny][nx].type = 'farmland';
+        }
+    }
+}
+
 const villagers = [];
 function addVillager(x, y) {
     if (villagers.length >= getHousingCapacity()) return;
@@ -276,11 +297,14 @@ function stepVillager(v, index) {
         }
     }
 
-    // Convert grass to farmland when not carrying anything
+    // Convert grass to farmland when needed and food is available
     if (!v.carrying && tile.type === 'grass') {
-        tile.type = 'farmland';
-        tile.hasCrop = false;
-        tile.cropEmoji = null;
+        if (farmlandCount < villagers.length * 2 && spendFood(5)) {
+            tile.type = 'farmland';
+            tile.hasCrop = false;
+            tile.cropEmoji = null;
+            farmlandCount++;
+        }
     }
 
     // Eat if hungry
@@ -380,12 +404,14 @@ function gameTick() {
     }
 
     countHouses();
+    countFarmland();
     updateCounts();
     draw();
 }
 
 function startGame() {
     countHouses();
+    countFarmland();
     addVillager();
     setInterval(gameTick, 100);
 }

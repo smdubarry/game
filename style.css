@@ -6,7 +6,7 @@ body {
 }
 
 #gameCanvas {
-    border: 1px solid #333;
+    border: none;
     background: #fff;
     display: block;
     margin: 0 auto;
