@@ -133,17 +133,50 @@ function findNearestGrass(x, y) {
     return best;
 }
 
+function findPathStep(sx, sy, tx, ty) {
+    if (sx === tx && sy === ty) return null;
+    const visited = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
+    const prev = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(null));
+    const queue = [{ x: sx, y: sy }];
+    visited[sy][sx] = true;
+    const dirs = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+    ];
+    while (queue.length) {
+        const { x, y } = queue.shift();
+        if (x === tx && y === ty) break;
+        for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= GRID_WIDTH || ny >= GRID_HEIGHT) continue;
+            if (visited[ny][nx]) continue;
+            if (tiles[ny][nx].type === 'water') continue;
+            visited[ny][nx] = true;
+            prev[ny][nx] = { x, y };
+            queue.push({ x: nx, y: ny });
+        }
+    }
+    if (!visited[ty][tx]) return null;
+    let cx = tx;
+    let cy = ty;
+    while (prev[cy][cx] && !(prev[cy][cx].x === sx && prev[cy][cx].y === sy)) {
+        const p = prev[cy][cx];
+        cx = p.x;
+        cy = p.y;
+    }
+    return { x: cx, y: cy };
+}
+
 function moveTowards(v, target) {
     if (!target) return;
-    let newX = v.x;
-    let newY = v.y;
-    if (v.x < target.x) newX++;
-    else if (v.x > target.x) newX--;
-    else if (v.y < target.y) newY++;
-    else if (v.y > target.y) newY--;
-    if (!isTileOccupied(newX, newY)) {
-        v.x = newX;
-        v.y = newY;
+    if (v.x === target.x && v.y === target.y) return;
+    const step = findPathStep(v.x, v.y, target.x, target.y);
+    if (step && !isTileOccupied(step.x, step.y)) {
+        v.x = step.x;
+        v.y = step.y;
     }
 }
 
