@@ -4,6 +4,7 @@ export const villagers = [];
 export let houseCount = 0;
 export let farmlandCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
+let farmlandTargetCount = 0;
 
 const VILLAGER_EMOJIS = [
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
@@ -184,7 +185,10 @@ function moveTowards(v, target) {
 function releaseTarget(v) {
     if (v.target) {
         const t = tiles[v.target.y]?.[v.target.x];
-        if (t && t.targeted) t.targeted = false;
+        if (t && t.targeted) {
+            if (v.task === 'make_farmland') farmlandTargetCount--;
+            t.targeted = false;
+        }
     }
 }
 
@@ -288,7 +292,7 @@ export function stepVillager(v, index, ticks, log) {
         }
     }
 
-    const needed = farmlandCount < villagers.length * FARMLAND_PER_VILLAGER;
+    const needed = farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER;
     if (!v.carrying && needed) {
         if (tile.type === 'grass') {
             tile.type = 'farmland';
@@ -305,7 +309,10 @@ export function stepVillager(v, index, ticks, log) {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 releaseTarget(v);
                 v.target = findNearestGrass(v.x, v.y);
-                if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+                if (v.target) {
+                    tiles[v.target.y][v.target.x].targeted = true;
+                    farmlandTargetCount++;
+                }
             }
             if (v.target) {
                 moveTowards(v, v.target);
@@ -338,11 +345,14 @@ export function stepVillager(v, index, ticks, log) {
             }
             v.status = status;
             return;
-        } else if (farmlandCount < villagers.length * FARMLAND_PER_VILLAGER) {
+        } else if (farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER) {
             if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
                 releaseTarget(v);
                 v.target = findNearestGrass(v.x, v.y);
-                if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+                if (v.target) {
+                    tiles[v.target.y][v.target.x].targeted = true;
+                    farmlandTargetCount++;
+                }
             }
             if (v.target) {
                 moveTowards(v, v.target);
