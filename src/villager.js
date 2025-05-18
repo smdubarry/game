@@ -279,8 +279,8 @@ export function spendWood(amount) {
     return false;
 }
 
-export function addVillager(x, y, log) {
-    if (villagers.length >= getHousingCapacity()) return;
+export function addVillager(x, y, log, ignoreLimit = false) {
+    if (!ignoreLimit && villagers.length >= getHousingCapacity()) return;
     let vx = x !== undefined ? x : Math.floor(Math.random() * GRID_WIDTH);
     let vy = y !== undefined ? y : Math.floor(Math.random() * GRID_HEIGHT);
     let attempts = 0;

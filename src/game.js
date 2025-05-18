@@ -252,8 +252,8 @@ document.getElementById('toggleSim').addEventListener('click', () => {
 document.getElementById('addVillager').addEventListener('click', () => {
     const pos = getRandomHousePos();
     if (pos) {
-        addVillager(pos.x, pos.y, log);
+        addVillager(pos.x, pos.y, log, true);
     } else {
-        addVillager(undefined, undefined, log);
+        addVillager(undefined, undefined, log, true);
     }
 });
