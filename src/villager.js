@@ -509,10 +509,19 @@ export function stepVillager(v, index, ticks, log) {
             moveTowards(v, v.target);
         }
     } else {
-        releaseTarget(v);
-        v.task = 'wait';
-        v.target = null;
-        status = 'waiting';
+        if (v.task === 'wait') {
+            releaseTarget(v);
+            status = 'waiting';
+        } else {
+            releaseTarget(v);
+            const dir = Math.floor(Math.random() * 4);
+            if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y)) v.x--;
+            if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y)) v.x++;
+            if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1)) v.y--;
+            if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1)) v.y++;
+            v.task = null;
+            status = 'wandering';
+        }
     }
     v.status = status;
 }
