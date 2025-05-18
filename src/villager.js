@@ -206,8 +206,10 @@ function releaseTarget(v) {
     if (v.target) {
         const t = tiles[v.target.y]?.[v.target.x];
         if (t && t.targeted) {
-            if (v.task === 'make_farmland') farmlandTargetCount--;
             t.targeted = false;
+        }
+        if (v.task === 'make_farmland' && farmlandTargetCount > 0) {
+            farmlandTargetCount--;
         }
     }
 }
@@ -365,7 +367,6 @@ export function stepVillager(v, index, ticks, log) {
             // so other villagers see the updated total on the same tick
             countFarmland();
             if (log) log(`${v.name} prepared farmland`);
-            releaseTarget(v);
             v.task = null;
             v.target = null;
             status = 'working';
