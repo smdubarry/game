@@ -14,7 +14,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - Villager movement now uses pathfinding to avoid water so they won't get stuck while walking to their destinations.
 - When villagers have no immediate task they now wait in place instead of wandering randomly.
 - Houses store deposited food and wood. Each house provides housing for five villagers and is given a procedurally generated name.
-- When the population has reached the current housing capacity, villagers chop trees for wood. Once 10 wood is stored, a villager standing on a grass tile will build a new house.
+- When the population has reached the current housing capacity, villagers who have just eaten will chop trees if fewer than 10 wood are currently being gathered (including wood being carried or targeted). Once 10 wood is stored, a villager standing on a grass tile will build a new house.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
 - Villagers lose 1 health each tick and die if it reaches zero. They no longer die of old age. When their health falls below 90 they go to the nearest house to eat and regain full health. If no food is stored, they instead convert the nearest grass tile to farmland.
 - Hovering over any tile shows a tooltip listing everything on that space. The
