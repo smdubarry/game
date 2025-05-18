@@ -8,6 +8,15 @@ export const FARMLAND_PER_VILLAGER = 2;
 export const HOUSE_SPAWN_TIME = 200;
 let farmlandTargetCount = 0;
 
+export function getWoodBeingGathered() {
+    let amount = getTotalWood();
+    for (const v of villagers) {
+        if (v.carryingWood) amount += v.carryingWood;
+        else if (v.task === 'gather_wood') amount += 1;
+    }
+    return amount;
+}
+
 const VILLAGER_EMOJIS = [
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2640}\u{FE0F}',
@@ -399,6 +408,22 @@ export function stepVillager(v, index, ticks, log) {
                 v.task = null;
                 v.target = null;
                 status = 'eating';
+                if (farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER) {
+                    v.target = findNearestGrass(v.x, v.y);
+                    if (v.target) {
+                        tiles[v.target.y][v.target.x].targeted = true;
+                        farmlandTargetCount++;
+                        v.task = 'make_farmland';
+                        status = 'seeking farmland site';
+                    }
+                } else if (villagers.length >= getHousingCapacity() && getWoodBeingGathered() < 10) {
+                    v.target = findNearestForest(v.x, v.y);
+                    if (v.target) {
+                        tiles[v.target.y][v.target.x].targeted = true;
+                        v.task = 'gather_wood';
+                        status = 'seeking wood';
+                    }
+                }
             } else {
                 if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
                     releaseTarget(v);
@@ -442,15 +467,9 @@ export function stepVillager(v, index, ticks, log) {
 
     if (!v.task || v.task === 'wait') {
         releaseTarget(v);
-        if (villagers.length >= getHousingCapacity() && getTotalWood() < 10) {
-            v.target = findNearestForest(v.x, v.y);
-            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
-            v.task = v.target ? 'gather_wood' : 'wait';
-        } else {
-            v.target = findNearestCrop(v.x, v.y);
-            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
-            v.task = v.target ? 'gather' : 'wait';
-        }
+        v.target = findNearestCrop(v.x, v.y);
+        if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+        v.task = v.target ? 'gather' : 'wait';
     }
 
     if (v.task === 'gather') {
