@@ -41,7 +41,8 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             corpseEmoji: null,
             corpseName: null,
             hasTree: false,
-            treeTimer: 0
+            treeTimer: 0,
+            spawnTimer: 200
         };
     }
 }
