@@ -1,5 +1,5 @@
 import { TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, COLORS, EMOJIS, FOOD_EMOJIS, tiles, generateLandscape } from './tiles.js';
-import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, getTotalWood, generateHouseName, houseCount, farmlandCount, deathCount, getRandomHousePos } from './villager.js';
+import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, getTotalWood, generateHouseName, houseCount, farmlandCount, deathCount, getRandomHousePos, HOUSE_SPAWN_TIME } from './villager.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -26,7 +26,6 @@ function log(msg) {
 
 let running = true;
 let ticks = 0;
-let spawnTimer = 200;
 
 generateLandscape();
 
@@ -42,6 +41,7 @@ tiles[startY][startX].stored = 0;
 tiles[startY][startX].wood = 0;
 tiles[startY][startX].name = generateHouseName();
 tiles[startY][startX].cropEmoji = null;
+tiles[startY][startX].spawnTimer = HOUSE_SPAWN_TIME;
 
 function updateCounts() {
     const food = getTotalFood();
@@ -145,21 +145,20 @@ function gameTick() {
         stepVillager(villagers[i], i, ticks, log);
     }
 
-    spawnTimer--;
-    if (spawnTimer <= 0) {
-        const choices = [];
-        for (let y = 0; y < GRID_HEIGHT; y++) {
-            for (let x = 0; x < GRID_WIDTH; x++) {
-                const t = tiles[y][x];
-                if (t.type === 'house' && t.stored > 0) choices.push({ x, y, t });
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const t = tiles[y][x];
+            if (t.type === 'house') {
+                t.spawnTimer--;
+                if (t.spawnTimer <= 0) {
+                    if (t.stored > 0 && villagers.length < getHousingCapacity()) {
+                        t.stored--;
+                        addVillager(x, y, log);
+                    }
+                    t.spawnTimer = HOUSE_SPAWN_TIME;
+                }
             }
         }
-        if (choices.length > 0 && villagers.length < getHousingCapacity()) {
-            const h = choices[Math.floor(Math.random() * choices.length)];
-            h.t.stored--;
-            addVillager(h.x, h.y, log);
-        }
-        spawnTimer = 200;
     }
 
     countHouses();

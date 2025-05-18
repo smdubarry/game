@@ -5,6 +5,7 @@ export let houseCount = 0;
 export let farmlandCount = 0;
 export let deathCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
+export const HOUSE_SPAWN_TIME = 200;
 let farmlandTargetCount = 0;
 
 const VILLAGER_EMOJIS = [
@@ -339,6 +340,7 @@ export function stepVillager(v, index, ticks, log) {
             tile.stored = 0;
             tile.wood = 0;
             tile.name = generateHouseName();
+            tile.spawnTimer = HOUSE_SPAWN_TIME;
             houseCount++;
             if (log) log(`${v.name} built ${tile.name}`);
             releaseTarget(v);
