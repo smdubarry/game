@@ -361,6 +361,9 @@ export function stepVillager(v, index, ticks, log) {
                 farmlandTargetCount--;
             }
             farmlandCount++;
+            // keep farmlandCount in sync immediately after converting a tile
+            // so other villagers see the updated total on the same tick
+            countFarmland();
             if (log) log(`${v.name} prepared farmland`);
             releaseTarget(v);
             v.task = null;
