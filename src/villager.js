@@ -6,6 +6,7 @@ export let farmlandCount = 0;
 export let deathCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
 export const HOUSE_SPAWN_TIME = 200;
+export const TREE_REGROW_TIME = 1000;
 
 const VILLAGER_EMOJIS = [
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
@@ -491,7 +492,7 @@ export function stepVillager(v, index, ticks, log) {
                 const t = tiles[v.y][v.x];
                 if (t.type === 'forest' && t.hasTree) {
                     t.hasTree = false;
-                    t.treeTimer = 100;
+                    t.treeTimer = TREE_REGROW_TIME;
                     v.carryingWood = 1;
                 }
                 t.targeted = false;
