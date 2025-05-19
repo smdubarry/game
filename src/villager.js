@@ -552,56 +552,53 @@ export function stepVillager(v, index, ticks, log) {
         return;
     }
 
+    const options = [];
+
     const preparing = villagers.filter(vv => vv.status === 'preparing farmland').length;
     if (farmlandCount + preparing < villagers.length * FARMLAND_PER_VILLAGER) {
-        releaseTarget(v);
-        v.target = findNearestGrass(v.x, v.y);
-        if (v.target) {
-            tiles[v.target.y][v.target.x].targeted = true;
-            v.task = 'prepare';
-            v.status = 'preparing farmland';
-            moveTowards(v, v.target);
-            return;
-        }
+        const target = findNearestGrass(v.x, v.y);
+        if (target) options.push({ action: 'prepare', target });
     }
 
     const plannedHouses = houseCount + countTargetedHouses();
     if (villagers.length >= plannedHouses * 5) {
         if (getTotalWood() >= 10) {
-            releaseTarget(v);
-            v.target = findNearestGrassForHouse(v.x, v.y);
-            if (v.target) {
-                tiles[v.target.y][v.target.x].houseTargeted = true;
-                v.task = 'build';
-                v.status = 'building house';
-                moveTowards(v, v.target);
-                return;
-            }
+            const target = findNearestGrassForHouse(v.x, v.y);
+            if (target) options.push({ action: 'build', target });
         } else {
-            releaseTarget(v);
-            v.target = findNearestForest(v.x, v.y);
-            if (v.target) {
-                tiles[v.target.y][v.target.x].targeted = true;
-                v.task = 'chop';
-                v.status = 'gathering wood';
-                moveTowards(v, v.target);
-                return;
-            }
+            const target = findNearestForest(v.x, v.y);
+            if (target) options.push({ action: 'chop', target });
         }
     }
 
-    // harvest crops if any
-    releaseTarget(v);
-    v.target = findNearestCropTile(v.x, v.y);
-    if (v.target) {
-        tiles[v.target.y][v.target.x].targeted = true;
-        v.task = 'harvest';
-        v.status = 'harvesting crop';
+    const crop = findNearestCropTile(v.x, v.y);
+    if (crop) options.push({ action: 'harvest', target: crop });
+
+    if (options.length > 0) {
+        const choice = options[Math.floor(Math.random() * options.length)];
+        releaseTarget(v);
+        v.target = choice.target;
+        if (choice.action === 'prepare') {
+            tiles[v.target.y][v.target.x].targeted = true;
+            v.task = 'prepare';
+            v.status = 'preparing farmland';
+        } else if (choice.action === 'build') {
+            tiles[v.target.y][v.target.x].houseTargeted = true;
+            v.task = 'build';
+            v.status = 'building house';
+        } else if (choice.action === 'chop') {
+            tiles[v.target.y][v.target.x].targeted = true;
+            v.task = 'chop';
+            v.status = 'gathering wood';
+        } else if (choice.action === 'harvest') {
+            tiles[v.target.y][v.target.x].targeted = true;
+            v.task = 'harvest';
+            v.status = 'harvesting crop';
+        }
         moveTowards(v, v.target);
         return;
     }
 
-    // nothing to do
     v.task = null;
     v.status = 'waiting';
 }
