@@ -6,17 +6,6 @@ export let farmlandCount = 0;
 export let deathCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
 export const HOUSE_SPAWN_TIME = 200;
-let farmlandTargetCount = 0;
-let houseTargetCount = 0;
-
-export function getWoodBeingGathered() {
-    let amount = getTotalWood();
-    for (const v of villagers) {
-        if (v.carryingWood) amount += v.carryingWood;
-        else if (v.task === 'gather_wood') amount += 1;
-    }
-    return amount;
-}
 
 const VILLAGER_EMOJIS = [
     '\u{1F3C3}\u{FE0F}\u{200D}\u{2642}\u{FE0F}',
@@ -242,16 +231,45 @@ function releaseTarget(v) {
         if (t && t.targeted) {
             t.targeted = false;
         }
-        if (t && t.houseTargeted) {
-            t.houseTargeted = false;
-        }
-        if (v.task === 'make_farmland' && farmlandTargetCount > 0) {
-            farmlandTargetCount--;
-        }
-        if (v.task === 'build_house' && houseTargetCount > 0) {
-            houseTargetCount--;
+    }
+}
+
+function bfsNearest(sx, sy, predicate) {
+    const visited = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
+    const queue = [{ x: sx, y: sy, dist: 0 }];
+    visited[sy][sx] = true;
+    const dirs = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+    ];
+    while (queue.length) {
+        const { x, y, dist } = queue.shift();
+        if (predicate(tiles[y][x], x, y)) return { x, y, dist };
+        for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= GRID_WIDTH || ny >= GRID_HEIGHT) continue;
+            if (visited[ny][nx]) continue;
+            if (tiles[ny][nx].type === 'water') continue;
+            visited[ny][nx] = true;
+            queue.push({ x: nx, y: ny, dist: dist + 1 });
         }
     }
+    return null;
+}
+
+function findNearestFoodSource(x, y) {
+    return bfsNearest(x, y, (t) => t.type === 'house' && t.stored > 0 && !t.targeted);
+}
+
+function findNearestCropTile(x, y) {
+    return bfsNearest(x, y, (t) => t.type === 'farmland' && t.hasCrop && !t.targeted);
+}
+
+function findNearestHousePath(x, y) {
+    return bfsNearest(x, y, (t) => t.type === 'house');
 }
 
 export function getTotalFood() {
@@ -323,9 +341,7 @@ export function addVillager(x, y, log, ignoreLimit = false) {
     villagers.push({
         x: vx,
         y: vy,
-        actionTimer: 0,
         carryingFood: 0,
-        carryingWood: 0,
         task: null,
         target: null,
         status: 'idle',
@@ -339,11 +355,6 @@ export function addVillager(x, y, log, ignoreLimit = false) {
 
 export function stepVillager(v, index, ticks, log) {
     v.age++;
-    if (v.actionTimer > 0) {
-        v.actionTimer--;
-        return;
-    }
-
     if (ticks % 5 === 0) {
         v.health -= 1;
     }
@@ -358,227 +369,77 @@ export function stepVillager(v, index, ticks, log) {
     }
 
     const tile = tiles[v.y][v.x];
-    let status = 'idle';
 
-    if ((v.carryingFood || v.carryingWood) && tile.type === 'house') {
-        if (v.carryingFood) {
-            tile.stored += v.carryingFood;
-            v.carryingFood = 0;
-        }
-        if (v.carryingWood) {
-            tile.wood += v.carryingWood;
-            v.carryingWood = 0;
-        }
+    // deposit carried food when at a house
+    if (v.carryingFood && tile.type === 'house') {
+        tile.stored += v.carryingFood;
+        v.carryingFood = 0;
         releaseTarget(v);
         v.task = null;
         v.target = null;
-        status = 'depositing';
     }
 
-    if (!v.carryingFood && !v.carryingWood && tile.type === 'grass' && villagers.length >= getHousingCapacity() && getTotalWood() >= 10) {
-        if (spendWood(10)) {
-            tile.type = 'house';
-            tile.hasCrop = false;
-            tile.stored = 0;
-            tile.wood = 0;
-            tile.name = generateHouseName();
-            tile.spawnTimer = HOUSE_SPAWN_TIME;
-            houseCount++;
-            if (log) log(`${v.name} built ${tile.name}`);
+    // seek food when hurt
+    if (v.health < 90 || v.task === 'eat') {
+        if (tile.type === 'house' && tile.stored > 0) {
+            tile.stored--;
+            v.health = 100;
             releaseTarget(v);
             v.task = null;
             v.target = null;
-            status = 'building';
-        }
-    }
-
-    const needed = farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER;
-    if (!v.carryingFood && !v.carryingWood && needed) {
-        if (tile.type === 'grass') {
-            tile.type = 'farmland';
-            tile.hasCrop = false;
-            tile.cropEmoji = null;
-            if (tile.targeted) {
-                tile.targeted = false;
-                farmlandTargetCount--;
-            }
-            farmlandCount++;
-            // keep farmlandCount in sync immediately after converting a tile
-            // so other villagers see the updated total on the same tick
-            countFarmland();
-            if (log) log(`${v.name} prepared farmland`);
-            v.task = null;
-            v.target = null;
-            status = 'working';
-        } else {
-            if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
-                releaseTarget(v);
-                v.target = findNearestGrass(v.x, v.y);
-                if (v.target) {
-                    tiles[v.target.y][v.target.x].targeted = true;
-                    farmlandTargetCount++;
-                }
-            }
-            if (v.target) {
-                moveTowards(v, v.target);
-                v.task = 'make_farmland';
-                status = 'seeking farmland site';
-            }
-            v.status = status;
+            v.status = 'seeking food';
             return;
         }
-    }
-
-    if (v.health < 90 || v.task === 'eat') {
-        if (getTotalFood() > 0) {
-            if (tile.type === 'house' && tile.stored > 0) {
-                tile.stored--;
-                v.health = 100;
-                // if (log) log(`${v.name} ate at ${tile.name}`);
-                releaseTarget(v);
-                v.task = null;
-                v.target = null;
-                status = 'eating';
-                if (farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER) {
-                    v.target = findNearestGrass(v.x, v.y);
-                    if (v.target) {
-                        tiles[v.target.y][v.target.x].targeted = true;
-                        farmlandTargetCount++;
-                        v.task = 'make_farmland';
-                        status = 'seeking farmland site';
-                    }
-                } else if (
-                    villagers.length >= getHousingCapacity() &&
-                    getTotalWood() >= 10 &&
-                    houseTargetCount === 0
-                ) {
-                    v.target = findNearestGrassForHouse(v.x, v.y);
-                    if (v.target) {
-                        tiles[v.target.y][v.target.x].houseTargeted = true;
-                        houseTargetCount++;
-                        v.task = 'build_house';
-                        status = 'seeking house site';
-                    }
-                } else if (villagers.length >= getHousingCapacity() && getWoodBeingGathered() < 10) {
-                    v.target = findNearestForest(v.x, v.y);
-                    if (v.target) {
-                        tiles[v.target.y][v.target.x].targeted = true;
-                        v.task = 'gather_wood';
-                        status = 'seeking wood';
-                    }
-                }
-            } else {
-                if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
-                    releaseTarget(v);
-                    v.target = findNearestHouse(v.x, v.y, true);
-                }
-                moveTowards(v, v.target);
-                v.task = 'eat';
-                status = 'seeking food';
-            }
-            v.status = status;
-            return;
-        } else if (farmlandCount + farmlandTargetCount < villagers.length * FARMLAND_PER_VILLAGER) {
-            if (!v.target || v.task !== 'make_farmland' || tiles[v.target.y][v.target.x].type !== 'grass') {
-                releaseTarget(v);
-                v.target = findNearestGrass(v.x, v.y);
-                if (v.target) {
-                    tiles[v.target.y][v.target.x].targeted = true;
-                    farmlandTargetCount++;
-                }
-            }
-            if (v.target) {
-                moveTowards(v, v.target);
-                v.task = 'make_farmland';
-                status = 'seeking farmland site';
-            }
-            v.status = status;
-            return;
+        if (!v.target || tiles[v.target.y][v.target.x].type !== 'house' || tiles[v.target.y][v.target.x].stored <= 0) {
+            releaseTarget(v);
+            v.target = findNearestFoodSource(v.x, v.y);
+            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
         }
-    }
-
-    if (v.carryingFood || v.carryingWood) {
-        if (!v.target || tiles[v.target.y][v.target.x].type !== 'house') {
-            v.target = findNearestHouse(v.x, v.y);
-        }
-        releaseTarget(v);
         moveTowards(v, v.target);
-        status = v.carryingWood ? 'returning wood' : 'returning food';
-        v.status = status;
+        v.task = 'eat';
+        v.status = 'seeking food';
         return;
     }
 
-    if (!v.task || v.task === 'wait') {
-        releaseTarget(v);
-        v.target = findNearestCrop(v.x, v.y);
-        if (v.target) tiles[v.target.y][v.target.x].targeted = true;
-        v.task = v.target ? 'gather' : 'wait';
+    // if carrying food, return to nearest house
+    if (v.carryingFood) {
+        if (!v.target || tiles[v.target.y][v.target.x].type !== 'house') {
+            releaseTarget(v);
+            v.target = findNearestHousePath(v.x, v.y);
+        }
+        moveTowards(v, v.target);
+        v.task = 'deposit';
+        v.status = 'harvesting crop';
+        return;
     }
 
-    if (v.task === 'gather') {
-        status = 'gathering';
-        if (!v.target) {
-            releaseTarget(v);
-            v.task = null;
-        } else if (v.x === v.target.x && v.y === v.target.y) {
-            const targetTile = tiles[v.y][v.x];
-            if (targetTile.type === 'farmland' && targetTile.hasCrop) {
-                targetTile.hasCrop = false;
-                targetTile.cropEmoji = null;
+    // harvest crops
+    if (!v.target || v.task !== 'harvest' || !tiles[v.target.y][v.target.x].hasCrop) {
+        releaseTarget(v);
+        v.target = findNearestCropTile(v.x, v.y);
+        if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+    }
+    if (v.target) {
+        if (v.x === v.target.x && v.y === v.target.y) {
+            const t = tiles[v.y][v.x];
+            if (t.type === 'farmland' && t.hasCrop) {
+                t.hasCrop = false;
+                t.cropEmoji = null;
                 v.carryingFood = 1;
             }
-            targetTile.targeted = false;
-            v.task = null;
+            t.targeted = false;
             v.target = null;
+            v.task = null;
         } else {
             moveTowards(v, v.target);
+            v.task = 'harvest';
         }
-    } else if (v.task === 'gather_wood') {
-        status = 'gathering wood';
-        if (!v.target) {
-            releaseTarget(v);
-            v.task = null;
-        } else if (v.x === v.target.x && v.y === v.target.y) {
-            const targetTile = tiles[v.y][v.x];
-            if (targetTile.type === 'forest' && targetTile.hasTree) {
-                targetTile.hasTree = false;
-                targetTile.treeTimer = 1000;
-                v.carryingWood = 1;
-            }
-            targetTile.targeted = false;
-            v.task = null;
-            v.target = null;
-        } else {
-            moveTowards(v, v.target);
-        }
-    } else if (v.task === 'build_house') {
-        status = 'building';
-        if (!v.target) {
-            releaseTarget(v);
-            v.task = null;
-        } else if (v.x === v.target.x && v.y === v.target.y) {
-            const targetTile = tiles[v.y][v.x];
-            if (targetTile.type === 'grass' && spendWood(10)) {
-                targetTile.type = 'house';
-                targetTile.hasCrop = false;
-                targetTile.stored = 0;
-                targetTile.wood = 0;
-                targetTile.name = generateHouseName();
-                targetTile.spawnTimer = HOUSE_SPAWN_TIME;
-                houseCount++;
-                if (log) log(`${v.name} built ${targetTile.name}`);
-            }
-            targetTile.houseTargeted = false;
-            if (houseTargetCount > 0) houseTargetCount--;
-            v.task = null;
-            v.target = null;
-        } else {
-            moveTowards(v, v.target);
-        }
-    } else {
-        releaseTarget(v);
-        status = 'waiting';
-        v.task = 'wait';
+        v.status = 'harvesting crop';
+        return;
     }
-    v.status = status;
+
+    // nothing to do
+    releaseTarget(v);
+    v.task = 'wait';
+    v.status = 'wait';
 }
