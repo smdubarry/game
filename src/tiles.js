@@ -35,6 +35,7 @@ for (let y = 0; y < GRID_HEIGHT; y++) {
             hasCrop: false,
             cropEmoji: null,
             targeted: false,
+            houseTargeted: false,
             stored: 0,
             wood: 0,
             name: null,
