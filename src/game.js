@@ -231,6 +231,10 @@ function updateTooltip() {
                    `Health: ${Math.floor(v.health)}`,
                    `Status: ${v.status}`);
     }
+    const foes = enemies.filter(e => e.x === hoverX && e.y === hoverY);
+    for (const f of foes) {
+        lines.push(`Enemy ${f.emoji}`, `Health: ${Math.floor(f.health)}`);
+    }
     const content = lines.join('<br>');
     if (content) {
         tooltip.innerHTML = content;
