@@ -13,7 +13,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - The colony begins with a single house placed at a random location and the first villager starts on that house.
 - Villagers always stay in place with a **waiting** status when they have no task and never wander randomly.
 - Houses store deposited food and each provides housing for five villagers with a procedurally generated name.
-- Villagers no longer chop wood or build additional houses on their own.
+- Villagers chop wood and build additional houses once the population reaches five times the number of existing or planned houses. Building a house costs 10 wood.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
 - Villagers lose 1 health each tick and die if it reaches zero. When their health falls below 90 they go to the nearest house with stored food to eat and regain full health.
 - Hovering over any tile shows a tooltip listing everything on that space. The

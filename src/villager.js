@@ -62,6 +62,14 @@ export function countFarmland() {
     return count;
 }
 
+export function countTargetedHouses() {
+    let count = 0;
+    for (let row of tiles) {
+        for (let t of row) if (t.houseTargeted) count++;
+    }
+    return count;
+}
+
 export function getHousingCapacity() {
     return houseCount * 5;
 }
@@ -342,6 +350,7 @@ export function addVillager(x, y, log, ignoreLimit = false) {
         x: vx,
         y: vy,
         carryingFood: 0,
+        carryingWood: 0,
         task: null,
         target: null,
         status: 'waiting',
@@ -370,10 +379,16 @@ export function stepVillager(v, index, ticks, log) {
 
     const tile = tiles[v.y][v.x];
 
-    // deposit carried food when at a house
-    if (v.carryingFood && tile.type === 'house') {
-        tile.stored += v.carryingFood;
-        v.carryingFood = 0;
+    // deposit carried resources when at a house
+    if ((v.carryingFood || v.carryingWood) && tile.type === 'house') {
+        if (v.carryingFood) {
+            tile.stored += v.carryingFood;
+            v.carryingFood = 0;
+        }
+        if (v.carryingWood) {
+            tile.wood += v.carryingWood;
+            v.carryingWood = 0;
+        }
         releaseTarget(v);
         v.task = null;
         v.target = null;
@@ -424,6 +439,71 @@ export function stepVillager(v, index, ticks, log) {
         moveTowards(v, v.target);
         v.task = 'prepare';
         return;
+    }
+
+    if (v.status === 'building house') {
+        if (v.x === v.target?.x && v.y === v.target?.y) {
+            const t = tiles[v.y][v.x];
+            if (t.type === 'grass' && spendWood(10)) {
+                t.type = 'house';
+                t.hasCrop = false;
+                t.stored = 0;
+                t.wood = 0;
+                t.name = generateHouseName();
+                t.spawnTimer = HOUSE_SPAWN_TIME;
+                t.houseTargeted = false;
+                houseCount++;
+                if (log) log(`${v.name} built ${t.name}`);
+            }
+            t.houseTargeted = false;
+            v.target = null;
+            v.task = null;
+            v.status = 'waiting';
+            return;
+        }
+        if (!v.target || tiles[v.target.y][v.target.x].type !== 'grass') {
+            releaseTarget(v);
+            v.target = findNearestGrassForHouse(v.x, v.y);
+            if (v.target) tiles[v.target.y][v.target.x].houseTargeted = true;
+        }
+        moveTowards(v, v.target);
+        v.task = 'build';
+        return;
+    }
+
+    if (v.status === 'gathering wood') {
+        if (v.carryingWood) {
+            if (!v.target || tiles[v.target.y][v.target.x].type !== 'house') {
+                releaseTarget(v);
+                v.target = findNearestHousePath(v.x, v.y);
+            }
+            moveTowards(v, v.target);
+            v.task = 'deposit';
+            return;
+        }
+        if (!v.target || v.task !== 'chop' || !tiles[v.target.y][v.target.x].hasTree) {
+            releaseTarget(v);
+            v.target = findNearestForest(v.x, v.y);
+            if (v.target) tiles[v.target.y][v.target.x].targeted = true;
+        }
+        if (v.target) {
+            if (v.x === v.target.x && v.y === v.target.y) {
+                const t = tiles[v.y][v.x];
+                if (t.type === 'forest' && t.hasTree) {
+                    t.hasTree = false;
+                    t.treeTimer = 100;
+                    v.carryingWood = 1;
+                }
+                t.targeted = false;
+                v.target = null;
+                v.task = null;
+            } else {
+                moveTowards(v, v.target);
+                v.task = 'chop';
+            }
+            return;
+        }
+        v.status = 'waiting';
     }
 
     if (v.status === 'harvesting crop') {
@@ -481,6 +561,31 @@ export function stepVillager(v, index, ticks, log) {
             v.status = 'preparing farmland';
             moveTowards(v, v.target);
             return;
+        }
+    }
+
+    const plannedHouses = houseCount + countTargetedHouses();
+    if (villagers.length >= plannedHouses * 5) {
+        if (getTotalWood() >= 10) {
+            releaseTarget(v);
+            v.target = findNearestGrassForHouse(v.x, v.y);
+            if (v.target) {
+                tiles[v.target.y][v.target.x].houseTargeted = true;
+                v.task = 'build';
+                v.status = 'building house';
+                moveTowards(v, v.target);
+                return;
+            }
+        } else {
+            releaseTarget(v);
+            v.target = findNearestForest(v.x, v.y);
+            if (v.target) {
+                tiles[v.target.y][v.target.x].targeted = true;
+                v.task = 'chop';
+                v.status = 'gathering wood';
+                moveTowards(v, v.target);
+                return;
+            }
         }
     }
 
