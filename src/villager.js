@@ -224,7 +224,13 @@ function moveTowards(v, target) {
     if (!target) return;
     if (v.x === target.x && v.y === target.y) return;
     const step = findPathStep(v.x, v.y, target.x, target.y);
-    if (step && !isTileOccupied(step.x, step.y)) {
+    if (!step) {
+        releaseTarget(v);
+        v.target = null;
+        v.task = null;
+        return;
+    }
+    if (!isTileOccupied(step.x, step.y)) {
         v.x = step.x;
         v.y = step.y;
     }
