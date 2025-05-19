@@ -7,6 +7,7 @@ export let deathCount = 0;
 export const FARMLAND_PER_VILLAGER = 2;
 export const HOUSE_SPAWN_TIME = 200;
 let farmlandTargetCount = 0;
+let houseTargetCount = 0;
 
 export function getWoodBeingGathered() {
     let amount = getTotalWood();
@@ -164,6 +165,24 @@ function findNearestForest(x, y) {
     return best;
 }
 
+function findNearestGrassForHouse(x, y) {
+    let best = null;
+    let bestDist = Infinity;
+    for (let yy = 0; yy < GRID_HEIGHT; yy++) {
+        for (let xx = 0; xx < GRID_WIDTH; xx++) {
+            const t = tiles[yy][xx];
+            if (t.type === 'grass' && !t.houseTargeted) {
+                const d = Math.abs(x - xx) + Math.abs(y - yy);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = { x: xx, y: yy };
+                }
+            }
+        }
+    }
+    return best;
+}
+
 function findPathStep(sx, sy, tx, ty) {
     if (sx === tx && sy === ty) return null;
     const visited = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
@@ -217,8 +236,14 @@ function releaseTarget(v) {
         if (t && t.targeted) {
             t.targeted = false;
         }
+        if (t && t.houseTargeted) {
+            t.houseTargeted = false;
+        }
         if (v.task === 'make_farmland' && farmlandTargetCount > 0) {
             farmlandTargetCount--;
+        }
+        if (v.task === 'build_house' && houseTargetCount > 0) {
+            houseTargetCount--;
         }
     }
 }
@@ -416,6 +441,18 @@ export function stepVillager(v, index, ticks, log) {
                         v.task = 'make_farmland';
                         status = 'seeking farmland site';
                     }
+                } else if (
+                    villagers.length >= getHousingCapacity() &&
+                    getTotalWood() >= 10 &&
+                    houseTargetCount === 0
+                ) {
+                    v.target = findNearestGrassForHouse(v.x, v.y);
+                    if (v.target) {
+                        tiles[v.target.y][v.target.x].houseTargeted = true;
+                        houseTargetCount++;
+                        v.task = 'build_house';
+                        status = 'seeking house site';
+                    }
                 } else if (villagers.length >= getHousingCapacity() && getWoodBeingGathered() < 10) {
                     v.target = findNearestForest(v.x, v.y);
                     if (v.target) {
@@ -508,20 +545,34 @@ export function stepVillager(v, index, ticks, log) {
         } else {
             moveTowards(v, v.target);
         }
-    } else {
-        if (v.task === 'wait') {
+    } else if (v.task === 'build_house') {
+        status = 'building';
+        if (!v.target) {
             releaseTarget(v);
-            status = 'waiting';
-        } else {
-            releaseTarget(v);
-            const dir = Math.floor(Math.random() * 4);
-            if (dir === 0 && v.x > 0 && !isTileOccupied(v.x - 1, v.y)) v.x--;
-            if (dir === 1 && v.x < GRID_WIDTH - 1 && !isTileOccupied(v.x + 1, v.y)) v.x++;
-            if (dir === 2 && v.y > 0 && !isTileOccupied(v.x, v.y - 1)) v.y--;
-            if (dir === 3 && v.y < GRID_HEIGHT - 1 && !isTileOccupied(v.x, v.y + 1)) v.y++;
             v.task = null;
-            status = 'wandering';
+        } else if (v.x === v.target.x && v.y === v.target.y) {
+            const targetTile = tiles[v.y][v.x];
+            if (targetTile.type === 'grass' && spendWood(10)) {
+                targetTile.type = 'house';
+                targetTile.hasCrop = false;
+                targetTile.stored = 0;
+                targetTile.wood = 0;
+                targetTile.name = generateHouseName();
+                targetTile.spawnTimer = HOUSE_SPAWN_TIME;
+                houseCount++;
+                if (log) log(`${v.name} built ${targetTile.name}`);
+            }
+            targetTile.houseTargeted = false;
+            if (houseTargetCount > 0) houseTargetCount--;
+            v.task = null;
+            v.target = null;
+        } else {
+            moveTowards(v, v.target);
         }
+    } else {
+        releaseTarget(v);
+        status = 'waiting';
+        v.task = 'wait';
     }
     v.status = status;
 }
