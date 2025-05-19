@@ -237,8 +237,13 @@ function moveTowards(v, target) {
 function releaseTarget(v) {
     if (v.target) {
         const t = tiles[v.target.y]?.[v.target.x];
-        if (t && t.targeted) {
-            t.targeted = false;
+        if (t) {
+            if (t.targeted) {
+                t.targeted = false;
+            }
+            if (t.houseTargeted) {
+                t.houseTargeted = false;
+            }
         }
     }
 }
