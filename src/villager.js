@@ -377,7 +377,7 @@ export function stepVillager(v, index, ticks, log) {
     let engaged = false;
     for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
-        if (Math.abs(e.x - v.x) + Math.abs(e.y - v.y) === 1) {
+        if (Math.abs(e.x - v.x) + Math.abs(e.y - v.y) <= 1) {
             engaged = true;
             v.status = 'fighting';
             e.health -= 5;
