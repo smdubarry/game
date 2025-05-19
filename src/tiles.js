@@ -21,7 +21,8 @@ export const EMOJIS = {
 
 export const FOOD_EMOJIS = [
     '\u{1F34E}','\u{1F34A}','\u{1F347}','\u{1F353}','\u{1F352}',
-    '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}'
+    '\u{1F955}','\u{1F33D}','\u{1F954}','\u{1F35E}','\u{1F357}',
+    '\u{1F355}'
 ];
 
 export const CORPSE_EMOJI = "\u{2620}\u{FE0F}";
