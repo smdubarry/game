@@ -1,4 +1,5 @@
 import { tiles, GRID_WIDTH, GRID_HEIGHT, FOOD_EMOJIS, CORPSE_EMOJI } from './tiles.js';
+import { enemies } from './enemies.js';
 
 export const villagers = [];
 export let houseCount = 0;
@@ -373,6 +374,22 @@ export function stepVillager(v, index, ticks, log) {
     if (ticks % 5 === 0) {
         v.health -= 1;
     }
+    let engaged = false;
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (Math.abs(e.x - v.x) + Math.abs(e.y - v.y) === 1) {
+            engaged = true;
+            v.status = 'fighting';
+            e.health -= 5;
+            v.health -= 3;
+            if (e.health <= 0) {
+                tiles[e.y][e.x].corpseEmoji = CORPSE_EMOJI;
+                enemies.splice(i, 1);
+                if (log) log(`${v.name} slew an enemy`);
+            }
+            break;
+        }
+    }
     if (v.health <= 0) {
         if (log) log(`${v.name} died`);
         releaseTarget(v);
@@ -380,6 +397,9 @@ export function stepVillager(v, index, ticks, log) {
         tiles[v.y][v.x].corpseName = v.name;
         villagers.splice(index, 1);
         deathCount++;
+        return;
+    }
+    if (engaged) {
         return;
     }
 

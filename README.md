@@ -18,6 +18,7 @@ Mini Colony Simulator is a lightweight browser game that depicts a small communi
 - Chopped trees regrow after 1000 ticks, so forests eventually replenish.
 - Houses with stored food periodically spend one food to spawn an additional villager if housing space is available. Villagers are represented by a variety of sports-themed emojis.
 - Villagers lose 1 health each tick and die if it reaches zero. When their health falls below 90 they go to the nearest house with stored food to eat and regain full health.
+- Hostile enemies occasionally spawn and pursue the nearest villager. When adjacent, the villager enters **fighting** status and both sides exchange damage until one dies, leaving a skull behind.
 - Hovering over any tile shows a tooltip listing everything on that space. The
   tooltip updates continuously even when the mouse stays still.
 - Food, wood, population, death, house and farmland counts plus the current tick are shown beneath the canvas and update continuously.

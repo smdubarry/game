@@ -1,5 +1,6 @@
 import { TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, COLORS, EMOJIS, FOOD_EMOJIS, tiles, generateLandscape } from './tiles.js';
 import { villagers, addVillager, stepVillager, countHouses, countFarmland, getHousingCapacity, getTotalFood, getTotalWood, generateHouseName, houseCount, farmlandCount, deathCount, getRandomHousePos, HOUSE_SPAWN_TIME } from './villager.js';
+import { enemies, spawnEnemy, stepEnemy } from './enemies.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -102,6 +103,10 @@ function draw() {
     for (const v of villagers) {
         ctx.fillText(v.emoji, v.x * TILE_SIZE + TILE_SIZE / 2, v.y * TILE_SIZE + TILE_SIZE / 2);
     }
+
+    for (const e of enemies) {
+        ctx.fillText(e.emoji, e.x * TILE_SIZE + TILE_SIZE / 2, e.y * TILE_SIZE + TILE_SIZE / 2);
+    }
 }
 
 function growCrops() {
@@ -141,8 +146,16 @@ function gameTick() {
     growCrops();
     regrowTrees();
 
+    if (Math.random() < 0.01) {
+        spawnEnemy(log);
+    }
+
     for (let i = villagers.length - 1; i >= 0; i--) {
         stepVillager(villagers[i], i, ticks, log);
+    }
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        stepEnemy(enemies[i], i, log);
     }
 
     for (let y = 0; y < GRID_HEIGHT; y++) {
