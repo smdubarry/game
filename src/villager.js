@@ -408,6 +408,7 @@ export function stepVillager(v, index, ticks, log) {
                 t.type = 'farmland';
                 t.hasCrop = false;
                 t.cropEmoji = null;
+                farmlandCount++;
             }
             t.targeted = false;
             v.target = null;
